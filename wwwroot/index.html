@@ -1,0 +1,425 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Mar del Plata Transparente</title>
+
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/app.css">
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="stylesheet" href="css/variables.css">
+
+    <link rel="stylesheet" href="css/componentes.css">
+
+    <link rel="stylesheet" href="css/map.css">
+
+    <link rel="stylesheet" href="css/detallePanel.css">
+
+</head>
+
+<body>
+
+    <!-- ================= NAVBAR ================= -->
+
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm">
+
+        <div class="container-fluid px-4">
+
+            <a class="navbar-brand fw-bold">
+
+                <i class="fa-solid fa-location-dot text-primary me-2"></i>
+
+                Mar del Plata Transparente
+
+            </a>
+
+            <div class="d-flex align-items-center">
+
+                <button class="btn btn-outline-primary">
+
+                    <i class="fa-regular fa-user me-2"></i>
+
+                    Iniciar sesión
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+    <!-- ================= MAPA ================= -->
+
+    <div id="map">
+        <!-- ================= PULSO CIUDAD PANEL ================= -->
+        <div id="pulsoPanel">
+
+
+            <h2>
+                🧬 Pulso de la ciudad
+            </h2>
+
+
+            <div class="estadistica">
+
+
+                <div class="dato">
+
+                    <strong id="totalReclamos">
+                        0
+                    </strong>
+
+                    <span>
+                        Reclamos activos
+                    </span>
+
+                </div>
+
+
+
+                <div class="dato">
+
+                    <strong id="totalVotos">
+                        0
+                    </strong>
+
+                    <span>
+                        Votos totales
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+
+            <hr>
+
+
+
+            <h3>
+                🔥 Más urgentes
+            </h3>
+
+
+            <div id="topReclamos">
+
+                Cargando...
+
+            </div>
+
+
+
+        </div>
+
+    </div>
+
+    <!-- ================= BOTON FLOTANTE ================= -->
+    <button class="btn btn-primary rounded-pill shadow-lg"
+            id="btnNuevoReclamo"
+            data-bs-toggle="modal"
+            data-bs-target="#modalReclamo">
+
+        <i class="fa-solid fa-plus me-2"></i>
+
+        Nuevo Reclamo
+
+    </button>
+
+    <!-- ================= PANEL DETALLE ================= -->
+
+    <div class="offcanvas offcanvas-end"
+         tabindex="-1"
+         id="detalleOffcanvas">
+
+        <div class="offcanvas-header border-bottom">
+
+            <h4 class="fw-bold mb-0">
+
+                Detalle del Reclamo
+
+            </h4>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="offcanvas">
+            </button>
+
+        </div>
+
+        <div class="offcanvas-body p-0">
+
+            <div class="position-relative">
+
+                <img id="detalleImagen"
+                     class="img-fluid w-100"
+                     src="https://placehold.co/700x400"
+                     alt="Reclamo">
+
+                <span id="detallePrioridad"
+                      class="badge badge-priority priority-high position-absolute top-0 start-0 m-3">
+
+                    Alta prioridad
+
+                </span>
+
+            </div>
+
+            <div class="p-4">
+
+                <h3 id="detalleTitulo"
+                    class="fw-bold mb-2">
+                </h3>
+
+                <div class="text-secondary mb-3"
+                     id="detalleUbicacion">
+
+                    <i class="fa-solid fa-location-dot me-2"></i>
+
+                </div>
+
+                <p id="detalleDescripcion"
+                   class="text-muted">
+                </p>
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <small class="text-secondary">
+
+                            Apoyos actuales
+
+                        </small>
+
+                        <h4 id="cantidadApoyos"
+                            class="fw-bold">
+
+                            0
+
+                        </h4>
+
+                    </div>
+
+                    <button id="btnApoyar"
+                            class="btn btn-primary-custom">
+
+                        <i class="fa-solid fa-thumbs-up me-2"></i>
+
+                        Apoyar
+
+                    </button>
+
+                </div>
+
+                <hr>
+
+                <h5 class="fw-bold mb-4">
+
+                    Estado del trámite
+
+                </h5>
+
+                <div id="timelineEstado">
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="modal fade"
+         id="modalReclamo"
+         tabindex="-1">
+
+        <div class="modal-dialog modal-lg">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h4 class="fw-bold">
+
+                        Nuevo Reclamo
+
+                    </h4>
+
+                    <button class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Título
+
+                        </label>
+
+                        <input id="titulo"
+                               class="form-control">
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <label class="form-label fw-semibold">
+
+                            ¿Qué problema encontraste?
+
+                        </label>
+
+                        <div id="tiposGrid"
+                             class="tipos-grid"
+                             style="display:grid; grid-template-columns:repeat(3,1fr); gap:15px;">
+
+                            <div class="tipo-card active" data-tipo="Baches">
+
+                                <i class="fa-solid fa-person-digging"></i>
+
+                                <span>Baches</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Basura">
+
+                                <i class="fa-solid fa-trash"></i>
+
+                                <span>Basura</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Alumbrado">
+
+                                <i class="fa-solid fa-lightbulb"></i>
+
+                                <span>Alumbrado</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Espacios Verdes">
+
+                                <i class="fa-solid fa-tree"></i>
+
+                                <span>Espacios Verdes</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Tránsito">
+
+                                <i class="fa-solid fa-traffic-light"></i>
+
+                                <span>Tránsito</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Agua">
+
+                                <i class="fa-solid fa-droplet"></i>
+
+                                <span>Agua</span>
+
+                            </div>
+
+                            <div class="tipo-card" data-tipo="Otros">
+
+                                <i class="fa-solid fa-circle-question"></i>
+
+                                <span>Otros</span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Dirección
+
+                        </label>
+
+                        <input id="direccion"
+                               class="form-control">
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Descripción
+
+                        </label>
+
+                        <textarea id="descripcion"
+                                  rows="4"
+                                  class="form-control"></textarea>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-primary"
+                            onclick="enviarReclamo()">
+
+                        Crear Reclamo
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <script src="js/app.js"></script>
+
+    <script src="js/detallePanel.js"></script>
+
+    <script src="js/reclamos.js"></script>
+
+    <script src="js/formulario.js"></script>
+
+</body>
+
+</html>

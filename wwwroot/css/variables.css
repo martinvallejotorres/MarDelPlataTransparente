@@ -1,0 +1,24 @@
+﻿:root {
+    /* Colores */
+
+    --primary: #2563EB;
+    --primary-dark: #1D4ED8;
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --background: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #1E293B;
+    --text-light: #64748B;
+    --border: #E2E8F0;
+    /* Sombras */
+
+    --shadow-sm: 0 2px 8px rgba(0,0,0,.06);
+    --shadow-md: 0 8px 24px rgba(0,0,0,.10);
+    /* Bordes */
+
+    --radius: 16px;
+    /* Animaciones */
+
+    --transition: .25s ease;
+}

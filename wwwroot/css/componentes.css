@@ -1,0 +1,40 @@
+﻿.btn-primary-custom {
+    background: var(--primary);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    color: white;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+    .btn-primary-custom:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+
+.card-custom {
+    background: white;
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.badge-priority {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-weight: 600;
+    color: white;
+}
+
+.priority-high {
+    background: var(--danger);
+}
+
+.priority-medium {
+    background: var(--warning);
+}
+
+.priority-low {
+    background: var(--success);
+}

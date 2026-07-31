@@ -1,0 +1,210 @@
+﻿body {
+    background: var(--background);
+    font-family: 'Inter',sans-serif;
+    color: var(--text);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+#map {
+    position: relative;
+}
+
+hr {
+    border-color: var(--border);
+}
+
+#btnNuevoReclamo {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 2000;
+    border-radius: 50px;
+    padding: 14px 24px;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.tipos-grid {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.tipo-card {
+    background: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all .25s ease;
+    user-select: none;
+}
+
+    .tipo-card i {
+        font-size: 26px;
+        color: #0d6efd;
+    }
+
+    .tipo-card span {
+        font-size: 15px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .tipo-card:hover {
+        transform: translateY(-4px);
+        border-color: #0d6efd;
+        box-shadow: 0 8px 20px rgba(13,110,253,.15);
+    }
+
+
+    .tipo-card.active {
+        background: #e8f1ff;
+        border: 2px solid #0d6efd;
+        color: #0d6efd;
+    }
+
+        .tipo-card .active i {
+            color: #0d6efd;
+
+        }
+
+.emoji-marker {
+    background: none;
+    border: none;
+}
+
+
+.marker-emoji {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
+}
+
+#pulsoPanel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 320px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 20px;
+    z-index: 999;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    font-family: Arial, sans-serif;
+}
+
+    #pulsoPanel h2 {
+        margin-top: 0;
+        font-size: 1.5rem;
+        color: black;
+    }
+
+    #pulsoPanel h3 {
+        margin-top: 0;
+        font-size: 1.5rem;
+        color: black;
+    }
+
+
+
+.estadistica {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+
+
+.dato {
+    flex: 1;
+    background: rgba(0,0,0,.0);
+    padding: 12px;
+    color: black;
+    border-radius: 12px;
+}
+
+
+
+    .dato span {
+        display: block;
+        font-size: 13px;
+    }
+
+
+
+    .dato strong {
+        font-size: 28px;
+    }
+
+
+
+#pulsoPanel hr {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,.3);
+}
+
+
+
+#topReclamos div {
+    background: rgba(0,0,0,0);
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 10px;
+    color: black;
+}
+
+#totalVotos{
+    color: #2887e2;
+}
+
+.urgente-item {
+    background: rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: .2s;
+}
+
+    .urgente-item:hover {
+        background: rgba(255,255,255,.15);
+    }
+
+.urgente-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.puesto {
+    color: #000000a7;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.titulo {
+    font-weight: 600;
+    flex: 1;
+}
+
+.urgente-info {
+    display: flex;
+    justify-content: space-between;
+    opacity: .8;
+    font-size: 13px;
+}
