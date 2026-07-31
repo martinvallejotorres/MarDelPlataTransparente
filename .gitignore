@@ -427,3 +427,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Secretos locales de ASP.NET
+appsettings.Development.json
+
+# Archivos de configuración locales
+secrets.json
+
+# Variables de entorno
+.env
