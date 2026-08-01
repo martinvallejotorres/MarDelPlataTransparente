@@ -1,0 +1,18 @@
+﻿body {
+    background: #f5f6fa;
+}
+
+.card {
+    border: none;
+    border-radius: 18px;
+}
+
+table {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+h2 {
+    font-weight: bold;
+}

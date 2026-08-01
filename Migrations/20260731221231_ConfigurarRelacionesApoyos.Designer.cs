@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReclamosMDP.API.Data;
@@ -11,9 +12,11 @@ using ReclamosMDP.API.Data;
 namespace ReclamosMDP.API.Migrations
 {
     [DbContext(typeof(ReclamosDbContext))]
-    partial class ReclamosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731221231_ConfigurarRelacionesApoyos")]
+    partial class ConfigurarRelacionesApoyos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -257,41 +260,6 @@ namespace ReclamosMDP.API.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("ReclamosMDP.API.Models.HistorialEstado", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("EstadoAnterior")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EstadoNuevo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("ReclamoId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UsuarioId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReclamoId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("HistorialEstados");
-                });
-
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
                     b.Property<int>("Id")
@@ -299,9 +267,6 @@ namespace ReclamosMDP.API.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdministradorId")
-                        .HasColumnType("text");
 
                     b.Property<string>("Descripcion")
                         .HasColumnType("text");
@@ -339,8 +304,6 @@ namespace ReclamosMDP.API.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdministradorId");
 
                     b.HasIndex("UsuarioId");
 
@@ -421,36 +384,11 @@ namespace ReclamosMDP.API.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("ReclamosMDP.API.Models.HistorialEstado", b =>
-                {
-                    b.HasOne("ReclamosMDP.API.Models.Reclamo", "Reclamo")
-                        .WithMany("HistorialEstados")
-                        .HasForeignKey("ReclamoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Reclamo");
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
-                    b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Administrador")
-                        .WithMany()
-                        .HasForeignKey("AdministradorId");
-
                     b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId");
-
-                    b.Navigation("Administrador");
 
                     b.Navigation("Usuario");
                 });
@@ -463,8 +401,6 @@ namespace ReclamosMDP.API.Migrations
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
                     b.Navigation("ApoyosUsuarios");
-
-                    b.Navigation("HistorialEstados");
                 });
 #pragma warning restore 612, 618
         }

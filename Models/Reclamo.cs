@@ -20,10 +20,23 @@
 
         public string Titulo { get; set; } = "";
 
-        public int Apoyos { get; set; } = 0;
+        //public int Apoyos { get; set; } = 0;
 
         public string Estado { get; set; } = "Recibido";
 
+        public string? AdministradorId { get; set; }
+
+        public ApplicationUser? Administrador { get; set; }
+
         public string? FotoUrl { get; set; }
+
+        public ICollection<Apoyo> ApoyosUsuarios { get; set; } = new List<Apoyo>();
+
+        public ICollection<HistorialEstado> HistorialEstados { get; set; }
+    = new List<HistorialEstado>();
+
+        public string? UsuarioId { get; set; }
+
+        public ApplicationUser? Usuario { get; set; }
     }
 }

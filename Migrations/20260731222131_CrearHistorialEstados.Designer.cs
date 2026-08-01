@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReclamosMDP.API.Data;
@@ -11,9 +12,11 @@ using ReclamosMDP.API.Data;
 namespace ReclamosMDP.API.Migrations
 {
     [DbContext(typeof(ReclamosDbContext))]
-    partial class ReclamosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731222131_CrearHistorialEstados")]
+    partial class CrearHistorialEstados
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -300,9 +303,6 @@ namespace ReclamosMDP.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AdministradorId")
-                        .HasColumnType("text");
-
                     b.Property<string>("Descripcion")
                         .HasColumnType("text");
 
@@ -339,8 +339,6 @@ namespace ReclamosMDP.API.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdministradorId");
 
                     b.HasIndex("UsuarioId");
 
@@ -442,15 +440,9 @@ namespace ReclamosMDP.API.Migrations
 
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
-                    b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Administrador")
-                        .WithMany()
-                        .HasForeignKey("AdministradorId");
-
                     b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId");
-
-                    b.Navigation("Administrador");
 
                     b.Navigation("Usuario");
                 });
