@@ -10,11 +10,11 @@ namespace ReclamosMDP.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UsuariosController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ReclamosDbContext _context;
-
 
         public UsuariosController(
             UserManager<ApplicationUser> userManager,
@@ -25,7 +25,6 @@ namespace ReclamosMDP.API.Controllers
         }
 
 
-        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> MiPerfil()
         {
@@ -33,37 +32,34 @@ namespace ReclamosMDP.API.Controllers
                 ClaimTypes.NameIdentifier
             );
 
-
             if (usuarioId == null)
             {
                 return Unauthorized();
             }
 
-
             var usuario = await _userManager.FindByIdAsync(
                 usuarioId
             );
 
-
             if (usuario == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    mensaje = "Usuario no encontrado."
+                });
             }
-
 
             var apoyos = await _context.Apoyos
                 .CountAsync(a => a.UsuarioId == usuarioId);
 
-
-            var roles = await _userManager.GetRolesAsync(usuario);
-
+            var roles = await _userManager
+                .GetRolesAsync(usuario);
 
             return Ok(new
             {
                 usuario.Id,
                 usuario.Nombre,
                 usuario.Email,
-
                 roles,
 
                 apoyosRealizados = apoyos
@@ -71,7 +67,6 @@ namespace ReclamosMDP.API.Controllers
         }
 
 
-        [Authorize]
         [HttpGet("mis-reclamos")]
         public async Task<IActionResult> MisReclamos()
         {
@@ -93,21 +88,18 @@ namespace ReclamosMDP.API.Controllers
                     r.Id,
                     r.Titulo,
                     r.Tipo,
+                    r.Descripcion,
+                    r.Direccion,
                     r.Zona,
                     r.Estado,
                     r.Fecha,
+                    r.FotoUrl,
+
                     apoyos = r.ApoyosUsuarios.Count()
                 })
                 .ToListAsync();
 
             return Ok(reclamos);
         }
-
-
-
-
-
-
-
     }
 }

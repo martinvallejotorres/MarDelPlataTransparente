@@ -106,6 +106,19 @@ async function apoyarReclamo() {
 
     if (!reclamoActual) return;
 
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+
+        mostrarToast(
+            "Iniciá sesión",
+            "Necesitás una cuenta para apoyar un reclamo.",
+            "warning"
+        );
+
+        return;
+    }
+
     try {
 
         const data = await apiFetch(

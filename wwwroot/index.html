@@ -22,8 +22,6 @@
 
     <link rel="stylesheet" href="css/app.css">
 
-    <link rel="stylesheet" href="css/style.css">
-
     <link rel="stylesheet" href="css/variables.css">
 
     <link rel="stylesheet" href="css/componentes.css">
@@ -79,16 +77,14 @@
         <!-- ================= PULSO CIUDAD PANEL ================= -->
         <div id="pulsoPanel">
 
+            <div class="pulso-titulo">
+                <i class="fa-solid fa-wave-square"></i>
+                <span>Pulso de la ciudad</span>
+            </div>
 
-            <h2>
-                🧬 Pulso de la ciudad
-            </h2>
+            <div class="pulso-kpis">
 
-
-            <div class="estadistica">
-
-
-                <div class="dato">
+                <div class="pulso-kpi">
 
                     <strong id="totalReclamos">
                         0
@@ -100,41 +96,35 @@
 
                 </div>
 
-
-
-                <div class="dato">
+                <div class="pulso-kpi">
 
                     <strong id="totalVotos">
                         0
                     </strong>
 
                     <span>
-                        Votos totales
+                        Apoyos totales
                     </span>
 
                 </div>
 
-
             </div>
 
+            <div class="pulso-separador"></div>
 
+            <div class="pulso-subtitulo">
 
-            <hr>
+                <i class="fa-solid fa-fire"></i>
 
+                <span>
+                    Más urgentes
+                </span>
 
-
-            <h3>
-                🔥 Más urgentes
-            </h3>
-
+            </div>
 
             <div id="topReclamos">
-
                 Cargando...
-
             </div>
-
-
 
         </div>
 
@@ -487,6 +477,9 @@
 
     </div>
 
+
+    <!-- ================= MODAL RECLAMO ================= -->
+
     <div class="modal fade"
          id="modalReclamo"
          tabindex="-1">
@@ -671,7 +664,8 @@
 
                 <div class="modal-header">
 
-                    <h4 class="fw-bold">
+                    <h4 class="fw-bold"
+                        id="authTitulo">
 
                         Iniciar sesión
 
@@ -685,35 +679,154 @@
 
                 <div class="modal-body">
 
-                    <div class="mb-3">
+                    <!-- ================= LOGIN ================= -->
 
-                        <label>Email</label>
+                    <div id="vistaLogin">
 
-                        <input id="loginEmail"
-                               class="form-control">
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Email
+                            </label>
+
+                            <input id="loginEmail"
+                                   type="email"
+                                   class="form-control">
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Contraseña
+                            </label>
+
+                            <input id="loginPassword"
+                                   type="password"
+                                   class="form-control">
+
+                        </div>
+
+                        <button class="btn btn-primary w-100"
+                                id="btnEntrar">
+
+                            Iniciar sesión
+
+                        </button>
+
+                        <div class="text-center my-3 text-muted">
+                            o
+                        </div>
+
+                        <button class="btn btn-outline-dark w-100"
+                                id="btnGoogle"
+                                type="button">
+
+                            <i class="fa-brands fa-google me-2"></i>
+
+                            Continuar con Google
+
+                        </button>
+
+                        <div class="text-center mt-4">
+
+                            <span class="text-muted">
+                                ¿No tenés cuenta?
+                            </span>
+
+                            <button type="button"
+                                    class="btn btn-link p-0 ms-1"
+                                    id="mostrarRegistro">
+
+                                Crear cuenta
+
+                            </button>
+
+                        </div>
 
                     </div>
 
-                    <div class="mb-3">
 
-                        <label>Contraseña</label>
+                    <!-- ================= REGISTRO ================= -->
 
-                        <input id="loginPassword"
-                               type="password"
-                               class="form-control">
+                    <div id="vistaRegistro"
+                         class="d-none">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Nombre
+                            </label>
+
+                            <input id="registroNombre"
+                                   class="form-control">
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Email
+                            </label>
+
+                            <input id="registroEmail"
+                                   type="email"
+                                   class="form-control">
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Contraseña
+                            </label>
+
+                            <input id="registroPassword"
+                                   type="password"
+                                   class="form-control">
+
+                            <small class="text-muted">
+                                Mínimo 6 caracteres y al menos un número.
+                            </small>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Repetir contraseña
+                            </label>
+
+                            <input id="registroPasswordConfirmacion"
+                                   type="password"
+                                   class="form-control">
+
+                        </div>
+
+                        <button class="btn btn-primary w-100"
+                                id="btnRegistrar">
+
+                            Crear cuenta
+
+                        </button>
+
+                        <div class="text-center mt-4">
+
+                            <span class="text-muted">
+                                ¿Ya tenés cuenta?
+                            </span>
+
+                            <button type="button"
+                                    class="btn btn-link p-0 ms-1"
+                                    id="mostrarLogin">
+
+                                Iniciar sesión
+
+                            </button>
+
+                        </div>
 
                     </div>
-
-                </div>
-
-                <div class="modal-footer">
-
-                    <button class="btn btn-primary"
-                            id="btnEntrar">
-
-                        Entrar
-
-                    </button>
 
                 </div>
 

@@ -1,6 +1,8 @@
 ﻿// Crear mapa centrado en Mar del Plata
 
-const map = L.map('map').setView(
+const map = L.map('map', {
+    scrollWheelZoom: false
+}).setView(
     [-38.0055, -57.5426],
     13
 );

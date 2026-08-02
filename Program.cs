@@ -6,124 +6,210 @@ using ReclamosMDP.API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Console.WriteLine("ENTORNO: " + builder.Environment.EnvironmentName);
 
-var pruebaConexion = builder.Configuration
-    .GetConnectionString("PostgreSQL");
+// =========================================
+// CONFIGURACIÓN
+// =========================================
 
 Console.WriteLine(
-    "CONEXION: " + (pruebaConexion ?? "NULL")
+    "ENTORNO: " +
+    builder.Environment.EnvironmentName
 );
+
+var connectionString =
+    builder.Configuration.GetConnectionString(
+        "PostgreSQL"
+    );
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "No se configuró la conexión PostgreSQL."
+    );
+}
+
+
+// =========================================
+// SERVICIOS
+// =========================================
 
 builder.Services.AddHttpClient<GeocodingService>();
 
 builder.Services.AddScoped<JwtService>();
 
-builder.Services.AddDbContext<ReclamosDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("PostgreSQL")
-    )
+builder.Services.AddSingleton<ZonaService>();
+
+
+builder.Services.AddDbContext<ReclamosDbContext>(
+    options =>
+        options.UseNpgsql(connectionString)
 );
 
 
-// Identity configuration
+// =========================================
+// IDENTITY
+// =========================================
 
 builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole>(options =>
-    {
-        options.Password.RequireDigit = true;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequiredLength = 6;
-    })
+    .AddIdentity<ApplicationUser, IdentityRole>(
+        options =>
+        {
+            options.Password.RequireDigit = true;
+
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+
+            options.Password.RequireNonAlphanumeric = false;
+
+            options.Password.RequiredLength = 6;
+
+            options.User.RequireUniqueEmail = true;
+        }
+    )
     .AddEntityFrameworkStores<ReclamosDbContext>()
     .AddDefaultTokenProviders();
 
-// JWT Authentication configuration
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// =========================================
+// JWT + GOOGLE
+// =========================================
+
+builder.Services
+    .AddAuthentication(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
 
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
 
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(
-                builder.Configuration["Jwt:Key"]!
-            ))
-    };
-});
-
-
-
-builder.Services.AddSingleton<ZonaService>();
-
-//builder.Services.AddControllers();
-
-builder.Services.AddControllers().AddJsonOptions(options =>
+    .AddJwtBearer(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler =
-            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer =
+                    builder.Configuration["Jwt:Issuer"],
+
+                ValidAudience =
+                    builder.Configuration["Jwt:Audience"],
+
+                IssuerSigningKey =
+                    new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(
+                            builder.Configuration["Jwt:Key"]
+                            ?? throw new InvalidOperationException(
+                                "Jwt:Key no configurado."
+                            )
+                        )
+                    ),
+
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+    })
+
+    .AddGoogle(options =>
+    {
+        options.ClientId =
+            builder.Configuration[
+                "Authentication:Google:ClientId"
+            ]
+            ?? throw new InvalidOperationException(
+                "Google ClientId no configurado."
+            );
+
+        options.ClientSecret =
+            builder.Configuration[
+                "Authentication:Google:ClientSecret"
+            ]
+            ?? throw new InvalidOperationException(
+                "Google ClientSecret no configurado."
+            );
+
+        options.SignInScheme =
+            IdentityConstants.ExternalScheme;
     });
 
-// Pipeline
+
+// =========================================
+// NGINX / REVERSE PROXY
+// =========================================
+
+builder.Services.Configure<ForwardedHeadersOptions>(
+    options =>
+    {
+        options.ForwardedHeaders =
+            ForwardedHeaders.XForwardedFor |
+            ForwardedHeaders.XForwardedProto;
+
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+);
+
+
+// =========================================
+// CONTROLLERS
+// =========================================
+
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization
+                .ReferenceHandler.IgnoreCycles;
+    });
+
 
 var app = builder.Build();
 
 
-using (var scope = app.Services.CreateScope())
-{
-    await RoleInitializer.Initialize(scope.ServiceProvider);
-}
+// =========================================
+// ROLES
+// =========================================
 
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole>>();
-
-    string[] roles =
-    {
-        "Usuario",
-        "Administrador"
-    };
-
-
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(
-                new IdentityRole(role)
-            );
-        }
-    }
+    await RoleInitializer.Initialize(
+        scope.ServiceProvider
+    );
 }
+
+
+// =========================================
+// PIPELINE
+// =========================================
+
+app.UseForwardedHeaders();
+
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 
 app.UseHttpsRedirection();
 
-
-app.UseStaticFiles(); // ← importante para wwwroot
+app.UseStaticFiles();
 
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapFallbackToFile("index.html"); // ← opcional, útil para frontend
+app.MapFallbackToFile("index.html");
 
 await app.RunAsync();

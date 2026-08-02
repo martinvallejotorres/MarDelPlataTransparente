@@ -5,7 +5,17 @@ body {
 }
 
 #map {
-    height: calc(100vh - 56px);
+    height: 72vh;
+    min-height: 580px;
+    max-height: 760px;
     width: 100%;
     position: relative;
+}
+
+@media (max-width: 768px) {
+
+    #map {
+        height: 65vh;
+        min-height: 500px;
+    }
 }

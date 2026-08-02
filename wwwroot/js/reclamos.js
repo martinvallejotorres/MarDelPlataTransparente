@@ -50,12 +50,14 @@ function crearMarcadores(reclamos) {
 
 const iconosReclamos = {
 
+    "Baches": "🚧",
     "Basura": "🗑️",
-    "Alumbrado": "💡",
-    "Calle": "🛣️",
-    "Seguridad": "🚨",
     "Agua": "💧",
-    "Otro": "📌"
+    "Alumbrado": "💡",
+    "Espacios Verdes": "🌳",
+    "Tránsito": "🚦",
+    "Árboles caídos": "🌲",
+    "Otros": "📌"
 
 };
 

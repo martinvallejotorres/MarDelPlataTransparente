@@ -13,18 +13,23 @@ namespace ReclamosMDP.API.Services
             string[] roles =
             {
                 "Usuario",
-                "Moderador",
                 "Administrador"
             };
-
 
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
                 {
-                    await roleManager.CreateAsync(
+                    var resultado = await roleManager.CreateAsync(
                         new IdentityRole(role)
                     );
+
+                    if (!resultado.Succeeded)
+                    {
+                        throw new InvalidOperationException(
+                            $"No se pudo crear el rol {role}."
+                        );
+                    }
                 }
             }
         }

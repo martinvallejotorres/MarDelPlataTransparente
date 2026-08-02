@@ -92,33 +92,108 @@ hr {
 
 #pulsoPanel {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    width: 320px;
-    background: rgba(255,255,255,0.18);
-    backdrop-filter: blur(15px);
-    border-radius: 20px;
-    padding: 20px;
+    top: 18px;
+    left: 18px;
+    width: 275px;
+    background: rgba(255, 255, 255, .94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 18px;
+    padding: 16px;
     z-index: 999;
-    color: white;
-    box-shadow: 0 10px 30px rgba(0,0,0,.3);
-    font-family: Arial, sans-serif;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, .16);
+    color: var(--text);
 }
 
-    #pulsoPanel h2 {
-        margin-top: 0;
-        font-size: 1.5rem;
-        color: black;
+
+/* =========================
+   TITULO
+========================= */
+
+.pulso-titulo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+    .pulso-titulo i {
+        color: var(--primary);
     }
 
-    #pulsoPanel h3 {
-        margin-top: 0;
-        font-size: 1.5rem;
-        color: black;
+
+/* =========================
+   KPIs
+========================= */
+
+.pulso-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+
+.pulso-kpi {
+    min-width: 0;
+}
+
+
+    .pulso-kpi strong {
+        display: block;
+        font-size: 27px;
+        line-height: 1;
+        margin-bottom: 6px;
     }
 
 
+    .pulso-kpi:nth-child(2) strong {
+        color: var(--primary);
+    }
 
+
+    .pulso-kpi span {
+        display: block;
+        font-size: 11px;
+        line-height: 1.25;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: .3px;
+    }
+
+
+/* =========================
+   SEPARADOR
+========================= */
+
+.pulso-separador {
+    height: 1px;
+    background: var(--border);
+    margin: 14px -16px;
+}
+
+
+/* =========================
+   SUBTITULO
+========================= */
+
+.pulso-subtitulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+    .pulso-subtitulo i {
+        color: var(--danger);
+    }
+
+/*
 .estadistica {
     display: flex;
     justify-content: space-between;
@@ -130,7 +205,7 @@ hr {
 .dato {
     flex: 1;
     background: rgba(0,0,0,.0);
-    padding: 12px;
+    padding: 6px 4px;
     color: black;
     border-radius: 12px;
 }
@@ -139,13 +214,14 @@ hr {
 
     .dato span {
         display: block;
-        font-size: 13px;
+        font-size: 24px;
     }
 
 
 
     .dato strong {
-        font-size: 28px;
+        font-size: 11px;
+        color: var(--text-light);
     }
 
 
@@ -154,7 +230,7 @@ hr {
     border: none;
     border-top: 1px solid rgba(255,255,255,.3);
 }
-
+*/
 
 
 #topReclamos div {
@@ -170,40 +246,54 @@ hr {
 }
 
 .urgente-item {
-    background: rgba(255,255,255,.08);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 10px;
-    transition: .2s;
+    padding: 8px 6px;
+    margin-bottom: 3px;
+    border-radius: 10px;
+    transition: background .2s ease;
 }
 
+
     .urgente-item:hover {
-        background: rgba(255,255,255,.15);
+        background: #f8fafc;
     }
+
 
 .urgente-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
+    gap: 7px;
+    margin-bottom: 3px;
 }
+
 
 .puesto {
-    color: #000000a7;
-    font-size: 15px;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    min-width: 18px;
+    color: var(--text-light);
+    font-size: 11px;
+    font-weight: 700;
 }
 
+
 .titulo {
-    font-weight: 600;
     flex: 1;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 
 .urgente-info {
     display: flex;
     justify-content: space-between;
-    opacity: .8;
-    font-size: 13px;
+    padding-left: 25px;
+    font-size: 10px;
+    color: var(--text-light);
 }
 
 .ranking-barrio {

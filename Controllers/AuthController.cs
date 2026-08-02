@@ -5,6 +5,9 @@ using ReclamosMDP.API.DTOs;
 using ReclamosMDP.API.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using System.Text.Json;
+
 
 namespace ReclamosMDP.API.Controllers
 {
@@ -24,6 +27,47 @@ namespace ReclamosMDP.API.Controllers
             _signInManager = signInManager;
             _jwtService = jwtService;
         }
+
+
+        private static string CrearRespuestaGoogle(
+     object? resultado,
+     string? error)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                tipo = "google-auth",
+                resultado,
+                error
+            });
+
+                    return $@"
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset=""utf-8"">
+                        <title>Autenticación</title>
+                    </head>
+
+                    <body>
+
+                    <script>
+
+                        if (window.opener) {{
+                            window.opener.postMessage(
+                                {payload},
+                                window.location.origin
+                            );
+                        }}
+
+                        window.close();
+
+                    </script>
+
+                    </body>
+                    </html>";
+        }
+
+
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto model)
@@ -173,6 +217,189 @@ namespace ReclamosMDP.API.Controllers
                 roles
             });
         }
+
+
+
+        //=========================== Google Login ==================
+
+        [HttpGet("google")]
+        public IActionResult GoogleLogin()
+        {
+            var redirectUrl = Url.Action(
+                nameof(GoogleCallback),
+                "Auth"
+            );
+
+            var propiedades =
+                _signInManager.ConfigureExternalAuthenticationProperties(
+                    "Google",
+                    redirectUrl
+                );
+
+            return Challenge(
+                propiedades,
+                "Google"
+            );
+        }
+
+
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var info =
+                await _signInManager.GetExternalLoginInfoAsync();
+
+            if (info == null)
+            {
+                return Content(
+                    CrearRespuestaGoogle(
+                        null,
+                        "No se pudo obtener la información de Google."
+                    ),
+                    "text/html"
+                );
+            }
+
+
+            // Primero intentamos encontrar al usuario
+            // por su cuenta externa de Google.
+
+            var usuario = await _userManager.FindByLoginAsync(
+                info.LoginProvider,
+                info.ProviderKey
+            );
+
+
+            // Si todavía no está vinculada la cuenta Google,
+            // buscamos por email.
+
+            if (usuario == null)
+            {
+                var email = info.Principal.FindFirstValue(
+                    ClaimTypes.Email
+                );
+
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    return Content(
+                        CrearRespuestaGoogle(
+                            null,
+                            "Google no proporcionó un email válido."
+                        ),
+                        "text/html"
+                    );
+                }
+
+
+                usuario = await _userManager.FindByEmailAsync(email);
+
+
+                // Si tampoco existe el usuario,
+                // creamos una nueva cuenta.
+
+                if (usuario == null)
+                {
+                    var nombre =
+                        info.Principal.FindFirstValue(ClaimTypes.Name)
+                        ?? email.Split('@')[0];
+
+
+                    usuario = new ApplicationUser
+                    {
+                        UserName = email,
+                        Email = email,
+                        Nombre = nombre
+                    };
+
+
+                    var resultado =
+                        await _userManager.CreateAsync(usuario);
+
+                    if (!resultado.Succeeded)
+                    {
+                        return Content(
+                            CrearRespuestaGoogle(
+                                null,
+                                "No se pudo crear la cuenta."
+                            ),
+                            "text/html"
+                        );
+                    }
+
+
+                    var resultadoRol =
+                        await _userManager.AddToRoleAsync(
+                            usuario,
+                            "Usuario"
+                        );
+
+                    if (!resultadoRol.Succeeded)
+                    {
+                        return Content(
+                            CrearRespuestaGoogle(
+                                null,
+                                "No se pudo asignar el rol al usuario."
+                            ),
+                            "text/html"
+                        );
+                    }
+                }
+
+
+                // Vinculamos Google con la cuenta existente/nueva.
+
+                var resultadoLogin =
+                    await _userManager.AddLoginAsync(
+                        usuario,
+                        info
+                    );
+
+                if (!resultadoLogin.Succeeded)
+                {
+                    return Content(
+                        CrearRespuestaGoogle(
+                            null,
+                            "No se pudo vincular la cuenta de Google."
+                        ),
+                        "text/html"
+                    );
+                }
+            }
+
+
+            var roles =
+                await _userManager.GetRolesAsync(usuario);
+
+            var token =
+                await _jwtService.GenerarToken(usuario);
+
+
+            var resultadoGoogle = new
+            {
+                token,
+
+                usuario = new
+                {
+                    id = usuario.Id,
+                    nombre = usuario.Nombre,
+                    email = usuario.Email,
+                    roles
+                }
+            };
+
+
+            await HttpContext.SignOutAsync(
+                IdentityConstants.ExternalScheme
+            );
+
+
+            return Content(
+                CrearRespuestaGoogle(resultadoGoogle, null),
+                "text/html"
+            );
+        }
+
+
 
 
     }

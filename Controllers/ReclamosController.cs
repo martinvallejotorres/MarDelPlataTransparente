@@ -118,7 +118,7 @@ namespace ReclamosMDP.API.Controllers
 
             var urgentes = reclamos
                 .OrderByDescending(r => r.ApoyosUsuarios.Count())
-                .Take(5)
+                .Take(3)
                 .Select(r => new
                 {
                     r.Id,

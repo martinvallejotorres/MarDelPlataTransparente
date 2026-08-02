@@ -185,8 +185,8 @@ function actualizarNavbar() {
 
     menu.innerHTML = `
         <li>
-            <a class="dropdown-item" href="#">
-                <i class="fa-regular fa-user me-2"></i>
+            <a class="dropdown-item" href="/perfil.html">
+                <i class="fa-solid fa-user me-2"></i>
                 Mi perfil
             </a>
         </li>
@@ -234,7 +234,157 @@ function actualizarNavbar() {
 
 }
 
+function mostrarRegistro() {
 
+    document
+        .getElementById("vistaLogin")
+        .classList.add("d-none");
+
+    document
+        .getElementById("vistaRegistro")
+        .classList.remove("d-none");
+
+    document
+        .getElementById("authTitulo")
+        .textContent = "Crear cuenta";
+}
+
+
+function mostrarLogin() {
+
+    document
+        .getElementById("vistaRegistro")
+        .classList.add("d-none");
+
+    document
+        .getElementById("vistaLogin")
+        .classList.remove("d-none");
+
+    document
+        .getElementById("authTitulo")
+        .textContent = "Iniciar sesión";
+}
+
+
+async function registrar() {
+
+    const nombre = document
+        .getElementById("registroNombre")
+        .value
+        .trim();
+
+    const email = document
+        .getElementById("registroEmail")
+        .value
+        .trim();
+
+    const password = document
+        .getElementById("registroPassword")
+        .value;
+
+    const confirmacion = document
+        .getElementById("registroPasswordConfirmacion")
+        .value;
+
+
+    if (nombre.length < 2) {
+
+        mostrarToast(
+            "Nombre inválido",
+            "Ingresá tu nombre.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (!email) {
+
+        mostrarToast(
+            "Email inválido",
+            "Ingresá un email.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (password.length < 6) {
+
+        mostrarToast(
+            "Contraseña inválida",
+            "La contraseña debe tener al menos 6 caracteres.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (password !== confirmacion) {
+
+        mostrarToast(
+            "Las contraseñas no coinciden",
+            "Volvé a escribirlas.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await apiFetch("/auth/register", {
+
+            method: "POST",
+
+            body: JSON.stringify({
+                nombre,
+                email,
+                password
+            })
+
+        });
+
+
+        mostrarToast(
+            "Cuenta creada",
+            "Tu cuenta fue creada correctamente.",
+            "success"
+        );
+
+
+        document.getElementById("loginEmail").value =
+            email;
+
+        document.getElementById("loginPassword").value =
+            password;
+
+
+        mostrarLogin();
+
+
+        // Loguear automáticamente
+        await login();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        mostrarToast(
+            "No se pudo crear la cuenta",
+            error.message,
+            "error"
+        );
+
+    }
+
+}
 
 // ===============================
 // INICIO
@@ -252,6 +402,108 @@ document.addEventListener("DOMContentLoaded", async () => {
         .getElementById("btnEntrar")
         .addEventListener("click", login);
 
+    document
+        .getElementById("mostrarRegistro")
+        .addEventListener("click", mostrarRegistro);
+
+    document
+        .getElementById("mostrarLogin")
+        .addEventListener("click", mostrarLogin);
+
+    document
+        .getElementById("btnRegistrar")
+        .addEventListener("click", registrar);
+
+
+    document
+        .getElementById("btnGoogle")
+        .addEventListener(
+            "click",
+            loginGoogle
+        );
 });
 
 
+// ===============================
+// LOGIN GOOGLE
+// ===============================
+function loginGoogle() {
+
+    const popup = window.open(
+        "/api/auth/google",
+        "googleLogin",
+        "width=500,height=650"
+    );
+
+
+    if (!popup) {
+
+        mostrarToast(
+            "Google",
+            "El navegador bloqueó la ventana de inicio de sesión.",
+            "warning"
+        );
+
+    }
+
+}
+
+window.addEventListener("message", async (event) => {
+
+    if (event.origin !== window.location.origin) {
+        return;
+    }
+
+
+    const mensaje = event.data;
+
+
+    if (!mensaje ||
+        mensaje.tipo !== "google-auth") {
+
+        return;
+    }
+
+
+    if (mensaje.error) {
+
+        mostrarToast(
+            "No se pudo iniciar sesión",
+            mensaje.error,
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (!mensaje.resultado) {
+        return;
+    }
+
+
+    guardarSesion(
+        mensaje.resultado
+    );
+
+
+    await obtenerPerfil();
+
+
+    actualizarNavbar();
+
+
+    bootstrap.Modal
+        .getInstance(
+            document.getElementById("modalLogin")
+        )
+        ?.hide();
+
+
+    mostrarToast(
+        "Sesión iniciada",
+        "Ingresaste correctamente con Google.",
+        "success"
+    );
+
+});
