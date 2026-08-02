@@ -110,7 +110,9 @@ async function login() {
 
         console.error("ERROR LOGIN:", error);
 
-        alert(error.message);
+        mostrarToast(
+            "Error al intentar ingresar. Verifica tus credenciales.",
+        );
 
     }
 
@@ -166,6 +168,7 @@ function actualizarNavbar() {
 
     boton.classList.remove("btn-outline-primary");
     boton.classList.add("btn-primary");
+    boton.onclick = null;
 
     boton.innerHTML = `
         <i class="fa-solid fa-user me-2"></i>
@@ -189,9 +192,12 @@ function actualizarNavbar() {
         </li>
 
         <li>
-            <a class="dropdown-item" href="#">
-                <i class="fa-regular fa-folder me-2"></i>
-                Mis reclamos
+            <a class="dropdown-item"href="mis-reclamos.html">
+
+            <i class="fa-regular fa-folder me-2"></i>
+
+            Mis reclamos
+
             </a>
         </li>
 

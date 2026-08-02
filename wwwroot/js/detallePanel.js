@@ -108,9 +108,9 @@ async function apoyarReclamo() {
 
     try {
 
-        const response = await fetch(
+        const data = await apiFetch(
 
-            `/api/reclamos/${reclamoActual.id}/apoyar`,
+            `/reclamos/${reclamoActual.id}/apoyar`,
 
             {
                 method: "POST"
@@ -118,15 +118,13 @@ async function apoyarReclamo() {
 
         );
 
-        if (!response.ok) {
-
-            throw new Error();
-
-        }
-
-        const data = await response.json();
-
         reclamoActual.apoyos = data.apoyos;
+
+        mostrarToast(
+            "Gracias",
+            "Apoyaste este reclamo.",
+            "success"
+        );
 
         document.getElementById(
             "cantidadApoyos"
@@ -137,9 +135,10 @@ async function apoyarReclamo() {
     }
     catch (error) {
 
-        console.error(error);
-
-        alert("No se pudo apoyar el reclamo");
+        mostrarToast(
+            "Ya apoyaste este reclamo.",
+            "No puedes volver a apoyarlo"
+        );
 
     }
 

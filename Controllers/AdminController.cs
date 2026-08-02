@@ -25,7 +25,6 @@ namespace ReclamosMDP.API.Controllers
             _userManager = userManager;
         }
 
-        [Authorize(Roles = "Administrador")]
         [HttpGet]
         public IActionResult Panel()
         {
@@ -42,8 +41,23 @@ namespace ReclamosMDP.API.Controllers
 
             var reclamos = await _context.Reclamos
                 .Include(r => r.ApoyosUsuarios)
-                .ToListAsync();
+                .OrderByDescending(r => r.Fecha)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Titulo,
+                    r.Tipo,
+                    r.Direccion,
+                    r.Zona,
+                    r.Estado,
+                    r.Fecha,
+                    r.FotoUrl,
 
+                    apoyos = r.ApoyosUsuarios.Count(),
+
+                    r.AdministradorId
+                })
+                .ToListAsync();
 
             return Ok(reclamos);
         }
@@ -51,7 +65,6 @@ namespace ReclamosMDP.API.Controllers
 
         // GET api/admin/reclamos/{id}
 
-        [Authorize(Roles = "Administrador")]
         [HttpGet("reclamos/{id}")]
         public async Task<IActionResult> ObtenerDetalleReclamo(int id)
         {
@@ -155,6 +168,15 @@ namespace ReclamosMDP.API.Controllers
                 return Unauthorized();
             }
 
+            if (reclamo.Estado == dto.Estado)
+            {
+                return Conflict(new
+                {
+                    mensaje = "El reclamo ya tiene ese estado."
+                });
+            }
+
+
             var historial = new HistorialEstado
             {
                 ReclamoId = reclamo.Id,
@@ -187,41 +209,63 @@ namespace ReclamosMDP.API.Controllers
 
         // POST api/admin/reclamos/{id}/asignar/{usuarioId}
 
-        [Authorize(Roles = "Administrador")]
         [HttpPost("reclamos/{id}/asignar/{usuarioId}")]
-        public async Task<IActionResult> AsignarReclamo(int id,string usuarioId)
+        public async Task<IActionResult> AsignarReclamo(
+     int id,
+     string usuarioId)
         {
+            // Buscar reclamo
             var reclamo = await _context.Reclamos
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (reclamo == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    mensaje = "Reclamo no encontrado."
+                });
             }
 
 
-            var usuario = await _userManager.FindByIdAsync(usuarioId);
+            // Buscar usuario
+            var usuario = await _userManager
+                .FindByIdAsync(usuarioId);
 
             if (usuario == null)
             {
-                return BadRequest("Administrador inexistente");
+                return BadRequest(new
+                {
+                    mensaje = "Administrador inexistente."
+                });
             }
 
 
+            // Comprobar que realmente sea administrador
             var esAdmin = await _userManager.IsInRoleAsync(
                 usuario,
                 "Administrador"
             );
 
-
             if (!esAdmin)
             {
-                return BadRequest(
-                    "El usuario no tiene rol administrador"
-                );
+                return BadRequest(new
+                {
+                    mensaje = "El usuario no tiene rol de administrador."
+                });
             }
 
 
+            // Evitar asignarlo nuevamente al mismo administrador
+            if (reclamo.AdministradorId == usuarioId)
+            {
+                return Conflict(new
+                {
+                    mensaje = "El reclamo ya está asignado a ese administrador."
+                });
+            }
+
+
+            // Asignar administrador
             reclamo.AdministradorId = usuarioId;
 
             await _context.SaveChangesAsync();
@@ -229,18 +273,18 @@ namespace ReclamosMDP.API.Controllers
 
             return Ok(new
             {
-                mensaje = "Reclamo asignado correctamente",
-                reclamo = id,
-                administrador = usuario.Email
+                mensaje = "Reclamo asignado correctamente.",
+
+                reclamo = reclamo.Id,
+
+                administrador = new
+                {
+                    usuario.Id,
+                    usuario.Nombre,
+                    usuario.Email
+                }
             });
         }
-
-
-
-
-
-
-
 
 
 

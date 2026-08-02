@@ -140,6 +140,235 @@
 
     </div>
 
+
+    <!-- ================= Seccion Pulso Ciudad bajo del mapa ================= -->
+
+    <section class="container py-5" id="dashboardCiudad">
+
+        <h2 class="fw-bold mb-4">
+            📊 Pulso de la Ciudad
+        </h2>
+
+        <div class="row g-4">
+
+            <div class="col-lg-6">
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5>Reclamos por categoría</h5>
+
+                        <canvas id="graficoCategorias"></canvas>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-6">
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5>Reclamos por estado</h5>
+
+                        <canvas id="graficoEstados"></canvas>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= Barrios con mas reclamos ================= -->
+
+            <div class="row g-4 mt-2">
+
+                <div class="col-12">
+
+                    <div class="card shadow-sm border-0">
+
+                        <div class="card-body p-4">
+
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+
+                                <div>
+                                    <h5 class="fw-bold mb-1">
+                                        <i class="fa-solid fa-ranking-star me-2"></i>
+                                        Barrios con más reclamos
+                                    </h5>
+
+                                    <small class="text-muted">
+                                        Zonas con mayor cantidad de reclamos registrados
+                                    </small>
+                                </div>
+
+                            </div>
+
+                            <div id="rankingBarrios">
+                                Cargando...
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= Reclamos mas apoyados ================= -->
+
+            <div class="row g-4 mt-2">
+
+                <div class="col-12">
+
+                    <div class="card shadow-sm border-0">
+
+                        <div class="card-body p-4">
+
+                            <div class="mb-4">
+
+                                <h5 class="fw-bold mb-1">
+                                    <i class="fa-solid fa-fire me-2"></i>
+                                    Reclamos más apoyados
+                                </h5>
+
+                                <small class="text-muted">
+                                    Los reclamos que más apoyo recibieron de los vecinos
+                                </small>
+
+                            </div>
+
+                            <div id="reclamosMasApoyados"
+                                 class="row g-3">
+
+                                Cargando...
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ================= Evolucion Reclamos ================= -->
+            <div class="row g-4 mt-2">
+
+                <div class="col-12">
+
+                    <div class="card shadow-sm border-0">
+
+                        <div class="card-body p-4">
+
+                            <div class="mb-4">
+
+                                <h5 class="fw-bold mb-1">
+                                    <i class="fa-solid fa-chart-line me-2"></i>
+                                    Evolución de reclamos
+                                </h5>
+
+                                <small class="text-muted">
+                                    Reclamos registrados durante los últimos 30 días
+                                </small>
+
+                            </div>
+
+                            <div style="height: 320px;">
+                                <canvas id="graficoEvolucion"></canvas>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+        </div>
+
+    </section>
+
+    <!-- ================= Tarjetas KPIs ================= -->
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+
+                    <div class="fs-1">📍</div>
+
+                    <h3 id="kpiReclamos">0</h3>
+
+                    <small class="text-muted">
+                        Reclamos
+                    </small>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+
+                    <div class="fs-1">❤️</div>
+
+                    <h3 id="kpiApoyos">0</h3>
+
+                    <small class="text-muted">
+                        Apoyos
+                    </small>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+
+                    <div class="fs-1">🏘️</div>
+
+                    <h3 id="kpiBarrios">0</h3>
+
+                    <small class="text-muted">
+                        Barrios
+                    </small>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+
+                    <div class="fs-1">📅</div>
+
+                    <h3 id="kpiHoy">0</h3>
+
+                    <small class="text-muted">
+                        Hoy
+                    </small>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
     <!-- ================= BOTON FLOTANTE ================= -->
     <button class="btn btn-primary rounded-pill shadow-lg"
             id="btnNuevoReclamo"
@@ -394,6 +623,22 @@
 
                     </div>
 
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Foto (opcional)
+
+                        </label>
+
+                        <input type="file"
+                               id="foto"
+                               class="form-control"
+                               accept="image/*">
+
+                    </div>
+
+
                 </div>
 
                 <div class="modal-footer">
@@ -479,18 +724,49 @@
     </div>
 
 
+    <!-- ================= TOASTS ================= -->
 
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999;">
 
+        <div id="appToast"
+             class="toast align-items-center border-0"
+             role="alert">
+
+            <div class="d-flex">
+
+                <div class="toast-body">
+
+                    <strong id="toastTitulo"></strong>
+
+                    <br>
+
+                    <span id="toastMensaje"></span>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast">
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
 
 
 
     <!-- ================= JS ================= -->
+    <script src="js/ui.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script src="js/api.js"></script>
 
@@ -503,6 +779,8 @@
     <script src="js/reclamos.js"></script>
 
     <script src="js/formulario.js"></script>
+
+    <script src="js/dashboard.js"></script>
 
 </body>
 

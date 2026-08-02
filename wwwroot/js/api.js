@@ -4,7 +4,7 @@ const API_URL = "http://localhost:5171/api";
 async function apiFetch(endpoint, options = {}) {
 
     const token = localStorage.getItem("token");
-
+    console.log("TOKEN:", token);
     const headers = {
         "Content-Type": "application/json",
         ...options.headers
@@ -13,15 +13,34 @@ async function apiFetch(endpoint, options = {}) {
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
     }
-
+    console.log("TOKEN:", token);
     const response = await fetch(API_URL + endpoint, {
         ...options,
         headers
     });
 
     if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+
+        let mensaje = "Ocurrió un error.";
+
+        try {
+
+            const data = await response.json();
+
+            mensaje =
+                data.mensaje ||
+                data.title ||
+                JSON.stringify(data);
+
+        }
+        catch {
+
+            mensaje = await response.text();
+
+        }
+
+        throw new Error(mensaje);
+
     }
 
     return await response.json();

@@ -98,7 +98,7 @@ using (var scope = app.Services.CreateScope())
 
     string[] roles =
     {
-        "Ciudadano",
+        "Usuario",
         "Administrador"
     };
 

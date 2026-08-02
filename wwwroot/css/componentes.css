@@ -29,12 +29,15 @@
 
 .priority-high {
     background: var(--danger);
+    color: white;
 }
 
 .priority-medium {
     background: var(--warning);
+    color: #222;
 }
 
 .priority-low {
     background: var(--success);
+    color: white;
 }

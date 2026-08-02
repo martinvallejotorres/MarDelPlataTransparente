@@ -53,7 +53,13 @@ namespace ReclamosMDP.API.Controllers
             }
 
             // Asignar rol por defecto
-            await _userManager.AddToRoleAsync(usuario, "Usuario");
+
+            var resultadoRol = await _userManager.AddToRoleAsync(usuario, "Usuario");
+
+            if (!resultadoRol.Succeeded)
+            {
+                return BadRequest(resultadoRol.Errors);
+            }
 
             return Ok(new
             {
@@ -108,7 +114,7 @@ namespace ReclamosMDP.API.Controllers
 
 
 
-
+        [Authorize(Roles = "Administrador")]
         [HttpPost("hacer-admin/{email}")]
         public async Task<IActionResult> HacerAdmin(string email)
         {
@@ -116,20 +122,43 @@ namespace ReclamosMDP.API.Controllers
 
             if (usuario == null)
             {
-                return NotFound();
+                return NotFound(new
+                {
+                    mensaje = "Usuario no encontrado."
+                });
             }
 
-            await _userManager.AddToRoleAsync(
+            var yaEsAdmin = await _userManager.IsInRoleAsync(
                 usuario,
                 "Administrador"
             );
 
-            return Ok("Usuario convertido en administrador");
+            if (yaEsAdmin)
+            {
+                return Conflict(new
+                {
+                    mensaje = "El usuario ya es administrador."
+                });
+            }
+
+            var resultado = await _userManager.AddToRoleAsync(
+                usuario,
+                "Administrador"
+            );
+
+            if (!resultado.Succeeded)
+            {
+                return BadRequest(resultado.Errors);
+            }
+
+            return Ok(new
+            {
+                mensaje = "Usuario convertido en administrador."
+            });
         }
 
 
-
-
+        //=========================== Opcional ==================
         [Authorize]
         [HttpGet("roles")]
         public async Task<IActionResult> Roles()
@@ -143,21 +172,6 @@ namespace ReclamosMDP.API.Controllers
                 email = User.FindFirstValue(ClaimTypes.Email),
                 roles
             });
-        }
-
-
-
-        [Authorize]
-        [HttpGet("mis-claims")]
-        public IActionResult MisClaims()
-        {
-            return Ok(
-                User.Claims.Select(c => new
-                {
-                    c.Type,
-                    c.Value
-                })
-            );
         }
 
 

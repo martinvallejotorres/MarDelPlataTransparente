@@ -34,17 +34,12 @@
         background: #22C55E;
     }
 
-.priority-high {
-    background: #dc3545;
-    color: white;
-}
 
-.priority-medium {
-    background: #ffc107;
-    color: #222;
-}
+    /************************* Responsive ***********************/
 
-.priority-low {
-    background: #198754;
-    color: white;
+@media (max-width: 576px) {
+
+    .offcanvas {
+        width: 100% !important;
+    }
 }

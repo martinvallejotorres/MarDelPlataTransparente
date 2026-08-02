@@ -1,9 +1,9 @@
 ﻿console.log("reclamos.js cargado");
-
+let reclamosMapa = [];
 
 function crearMarcadores(reclamos) {
 
-    console.log("Creando marcadores:", reclamos.length);
+    reclamosMapa = reclamos;
 
 
     // Limpiar marcadores anteriores
@@ -11,11 +11,6 @@ function crearMarcadores(reclamos) {
 
 
     reclamos.forEach(reclamo => {
-
-
-        console.log("Marcador:", reclamo);
-        console.log("Tipo recibido:", reclamo.tipo);
-        console.log("Funcion icono:", crearIconoReclamo);
 
         const marker = L.marker([
 
@@ -56,20 +51,13 @@ function crearMarcadores(reclamos) {
 const iconosReclamos = {
 
     "Basura": "🗑️",
-
     "Alumbrado": "💡",
-
     "Calle": "🛣️",
-
     "Seguridad": "🚨",
-
     "Agua": "💧",
-
     "Otro": "📌"
 
 };
-
-
 
 // Crear icono emoji para Leaflet
 
@@ -120,15 +108,7 @@ async function cargarPulsoCiudad() {
 
         }
 
-
         const data = await response.json();
-
-
-        console.log(
-            "Estadísticas:",
-            data
-        );
-
 
 
         document.getElementById(
@@ -153,23 +133,11 @@ async function cargarPulsoCiudad() {
         contenedor.innerHTML = "";
 
 
-
-        const iconos = {
-
-            "Basura": "🗑️",
-            "Alumbrado": "💡",
-            "Calle": "🛣️",
-            "Seguridad": "🚨",
-            "Agua": "💧",
-            "Otro": "📌"
-
-        };
-
         data.masUrgentes.forEach((r, index) => {
 
             const item = document.createElement("div");
 
-            const emoji = iconos[r.tipo] ?? "📌";
+            const emoji = iconosReclamos[r.tipo] ?? "📌";
 
             item.className = "urgente-item";
 

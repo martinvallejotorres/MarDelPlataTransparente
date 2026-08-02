@@ -47,21 +47,29 @@
 
     <div class="container py-4">
 
-        <div class="row g-4">
+        <div class="row g-4 mb-5">
 
-            <div class="col-md-4">
+            <div class="col-lg-3">
 
-                <div class="card shadow-sm">
+                <div class="card shadow-sm border-0 stat-card">
 
                     <div class="card-body">
 
-                        <h5>Reclamos activos</h5>
+                        <div class="stat-icon bg-primary">
 
-                        <h2 id="activos">
+                            <i class="fa-solid fa-location-dot"></i>
 
-                            ...
+                        </div>
 
-                        </h2>
+                        <h6>Reclamos activos</h6>
+
+                        <h2 id="activos">0</h2>
+
+                        <small class="text-muted">
+
+                            En toda la ciudad
+
+                        </small>
 
                     </div>
 
@@ -69,20 +77,27 @@
 
             </div>
 
+            <div class="col-lg-3">
 
-            <div class="col-md-4">
-
-                <div class="card shadow-sm">
+                <div class="card shadow-sm border-0 stat-card">
 
                     <div class="card-body">
 
-                        <h5>Votos</h5>
+                        <div class="stat-icon bg-danger">
 
-                        <h2 id="votos">
+                            <i class="fa-solid fa-heart"></i>
 
-                            ...
+                        </div>
 
-                        </h2>
+                        <h6>Total de apoyos</h6>
+
+                        <h2 id="votos">0</h2>
+
+                        <small class="text-muted">
+
+                            Apoyos realizados
+
+                        </small>
 
                     </div>
 
@@ -90,20 +105,55 @@
 
             </div>
 
+            <div class="col-lg-3">
 
-            <div class="col-md-4">
-
-                <div class="card shadow-sm">
+                <div class="card shadow-sm border-0 stat-card">
 
                     <div class="card-body">
 
-                        <h5>Total Reclamos</h5>
+                        <div class="stat-icon bg-warning">
 
-                        <h2 id="cantidad">
+                            <i class="fa-solid fa-clock"></i>
 
-                            ...
+                        </div>
 
-                        </h2>
+                        <h6>En revisión</h6>
+
+                        <h2 id="revision">0</h2>
+
+                        <small class="text-muted">
+
+                            Pendientes
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-3">
+
+                <div class="card shadow-sm border-0 stat-card">
+
+                    <div class="card-body">
+
+                        <div class="stat-icon bg-success">
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                        </div>
+
+                        <h6>Solucionados</h6>
+
+                        <h2 id="solucionados">0</h2>
+
+                        <small class="text-muted">
+
+                            Finalizados
+
+                        </small>
 
                     </div>
 
@@ -123,33 +173,22 @@
 
         </h3>
 
+        <div class="row mb-3">
 
-        <table class="table table-hover mt-4">
+            <div class="col-md-6">
 
-            <thead>
+                <input id="buscarReclamo"
+                       class="form-control"
+                       placeholder="Buscar por título, dirección o zona...">
 
-                <tr>
+            </div>
 
-                    <th>ID</th>
+        </div>
 
-                    <th>Título</th>
 
-                    <th>Estado</th>
+        <div id="listaReclamos" class="row g-4 mt-2">
 
-                    <th>Zona</th>
-
-                    <th>Apoyos</th>
-
-                    <th></th>
-
-                </tr>
-
-            </thead>
-
-            <tbody id="tablaReclamos">
-            </tbody>
-
-        </table>
+        </div>
 
     </div>
 

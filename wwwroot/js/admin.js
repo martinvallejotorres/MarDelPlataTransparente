@@ -1,4 +1,5 @@
 ﻿let reclamoActual = null;
+let listaReclamos = [];
 
 document
     .getElementById("btnVolver")
@@ -21,8 +22,11 @@ async function cargarEstadisticas() {
         document.getElementById("votos").textContent =
             datos.votosTotales;
 
-        document.getElementById("cantidad").textContent =
-            datos.masUrgentes.length;
+        document.getElementById("revision").textContent =
+            datos.enRevision;
+
+        document.getElementById("solucionados").textContent =
+            datos.solucionados;
 
     }
 
@@ -34,53 +38,113 @@ async function cargarEstadisticas() {
 
 }
 
+function obtenerBadgeEstado(estado) {
+
+    switch (estado) {
+
+        case "Recibido":
+            return "bg-secondary";
+
+        case "En revisión":
+            return "bg-info";
+
+        case "En proceso":
+            return "bg-warning text-dark";
+
+        case "Solucionado":
+            return "bg-success";
+
+        case "Rechazado":
+            return "bg-danger";
+
+        default:
+            return "bg-secondary";
+    }
+
+}
 
 async function cargarReclamos() {
 
     try {
 
-        const reclamos = await apiFetch("/admin/reclamos");
+        listaReclamos = await apiFetch("/admin/reclamos");
 
-        const tabla = document.getElementById("tablaReclamos");
+        const lista = document.getElementById("listaReclamos");
 
-        tabla.innerHTML = "";
+        lista.innerHTML = "";
 
-        reclamos.forEach(reclamo => {
+        listaReclamos.forEach(reclamo => {
 
             const apoyos = reclamo.apoyosUsuarios
                 ? reclamo.apoyosUsuarios.length
                 : 0;
 
-            tabla.innerHTML += `
-                <tr>
+            lista.innerHTML += `
 
-                    <td>${reclamo.id}</td>
+                <div class="col-lg-6">
 
-                    <td>${reclamo.titulo}</td>
+                    <div class="card reclamo-card shadow-sm">
 
-                    <td>
-                        <span class="badge bg-secondary">
-                            ${reclamo.estado}
-                        </span>
-                    </td>
+                        <div class="card-body">
 
-                    <td>${reclamo.zona ?? "-"}</td>
+                            <div class="d-flex justify-content-between">
 
-                    <td>${apoyos}</td>
+                                <h5>
 
-                    <td>
+                                    ${reclamo.titulo || "(Sin título)"}
 
-                        <button
-                            class="btn btn-sm btn-primary"
-                            onclick="verDetalle(${reclamo.id})">
+                                </h5>
 
-                            Gestionar
+                                <span class="badge estado-badge ${obtenerBadgeEstado(reclamo.estado)}">
 
-                        </button>
+                                    ${reclamo.estado}
 
-                    </td>
+                                </span>
 
-                </tr>
+                            </div>
+
+                            <div class="reclamo-info">
+
+                                <i class="fa-solid fa-location-dot me-2"></i>
+
+                                ${reclamo.zona ?? "Sin zona"}
+
+                            </div>
+
+                            <div class="reclamo-info">
+
+                                <i class="fa-solid fa-tag me-2"></i>
+
+                                ${reclamo.tipo}
+
+                            </div>
+
+                            <div class="apoyos mb-3">
+
+                                ❤️ ${apoyos} apoyos
+
+                            </div>
+
+                            <div class="text-end">
+
+                                <button
+
+                                    class="btn btn-primary"
+
+                                    onclick="verDetalle(${reclamo.id})">
+
+                                    Gestionar
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             `;
 
         });
@@ -92,6 +156,28 @@ async function cargarReclamos() {
         console.error(error);
 
     }
+
+}
+
+function filtrarReclamos() {
+
+    const texto = document
+        .getElementById("buscarReclamo")
+        .value
+        .toLowerCase();
+
+    document
+        .querySelectorAll("#listaReclamos .col-lg-6")
+        .forEach(card => {
+
+            card.style.display =
+                card.textContent
+                    .toLowerCase()
+                    .includes(texto)
+                    ? ""
+                    : "none";
+
+        });
 
 }
 
@@ -202,7 +288,6 @@ async function verDetalle(id) {
 
 }
 
-
 async function guardarEstado() {
 
     try {
@@ -239,7 +324,9 @@ async function guardarEstado() {
 
         await cargarEstadisticas();
 
-        alert("Estado actualizado correctamente.");
+        mostrarToast(
+            "Estado actualizado correctamente"
+        );
 
     }
 
@@ -247,19 +334,13 @@ async function guardarEstado() {
 
         console.error(error);
 
-        alert(error.message);
+        mostrarToast(
+            "Error al actualizar el reclamo"
+        );
 
     }
 
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -276,5 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
             "click",
             guardarEstado
         );
+
+    document
+        .getElementById("buscarReclamo")
+        .addEventListener("input", filtrarReclamos);
 
 });

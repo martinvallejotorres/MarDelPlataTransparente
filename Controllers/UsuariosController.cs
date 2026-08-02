@@ -69,5 +69,45 @@ namespace ReclamosMDP.API.Controllers
                 apoyosRealizados = apoyos
             });
         }
+
+
+        [Authorize]
+        [HttpGet("mis-reclamos")]
+        public async Task<IActionResult> MisReclamos()
+        {
+            var usuarioId = User.FindFirstValue(
+                ClaimTypes.NameIdentifier
+            );
+
+            if (usuarioId == null)
+            {
+                return Unauthorized();
+            }
+
+            var reclamos = await _context.Reclamos
+                .Include(r => r.ApoyosUsuarios)
+                .Where(r => r.UsuarioId == usuarioId)
+                .OrderByDescending(r => r.Fecha)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Titulo,
+                    r.Tipo,
+                    r.Zona,
+                    r.Estado,
+                    r.Fecha,
+                    apoyos = r.ApoyosUsuarios.Count()
+                })
+                .ToListAsync();
+
+            return Ok(reclamos);
+        }
+
+
+
+
+
+
+
     }
 }
