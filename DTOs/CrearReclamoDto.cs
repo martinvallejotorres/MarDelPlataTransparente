@@ -24,13 +24,16 @@ namespace ReclamosMDP.API.DTOs
         )]
         public string Descripcion { get; set; } = "";
 
-        [Required(ErrorMessage = "La dirección es obligatoria.")]
         [StringLength(
             200,
             MinimumLength = 5,
             ErrorMessage = "La dirección debe tener entre 5 y 200 caracteres."
         )]
-        public string Direccion { get; set; } = "";
+        public string? Direccion { get; set; }
+
+        public string? Latitud { get; set; }
+
+        public string? Longitud { get; set; }
 
         public IFormFile? Foto { get; set; }
     }

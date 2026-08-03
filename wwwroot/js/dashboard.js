@@ -232,7 +232,14 @@ function crearReclamosMasApoyados(reclamos) {
     reclamos.forEach(reclamo => {
 
         const imagen = reclamo.fotoUrl
-            ?? "https://placehold.co/500x300?text=Sin+imagen";
+            ? `
+                <img
+                    src="${reclamo.fotoUrl}"
+                    class="card-img-top"
+                    alt="Imagen del reclamo">
+              `
+            : "";
+
 
         contenedor.innerHTML += `
             <div class="col-lg-4 col-md-6">
@@ -240,10 +247,7 @@ function crearReclamosMasApoyados(reclamos) {
                 <div class="card h-100 shadow-sm reclamo-destacado"
                      onclick="irAReclamo(${reclamo.id})">
 
-                    <img
-                        src="${imagen}"
-                        class="card-img-top"
-                        alt="Imagen del reclamo">
+                    ${imagen}
 
                     <div class="card-body">
 
@@ -267,8 +271,10 @@ function crearReclamosMasApoyados(reclamos) {
 
                             <i class="fa-solid fa-thumbs-up me-1"></i>
 
-                            ${reclamo.apoyos}
-                            ${reclamo.apoyos === 1 ? "apoyo" : "apoyos"}
+                            ${reclamo.apoyos ?? 0}
+                            ${(reclamo.apoyos ?? 0) === 1
+                ? "apoyo"
+                : "apoyos"}
 
                         </div>
 
@@ -278,7 +284,9 @@ function crearReclamosMasApoyados(reclamos) {
 
             </div>
         `;
+
     });
+
 }
 
 

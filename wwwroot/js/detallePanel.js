@@ -25,8 +25,31 @@ function abrirDetalle(reclamo) {
     document.getElementById("detalleTitulo").textContent =
         reclamo.titulo;
 
-    document.getElementById("detalleImagen").src =
-        reclamo.fotoUrl ?? "https://placehold.co/700x400";
+    const imagen =
+        document.getElementById("detalleImagen");
+
+    const contenedorImagen =
+        document.querySelector(
+            ".detalle-imagen-contenedor"
+        );
+
+    if (reclamo.fotoUrl) {
+
+        imagen.src =
+            reclamo.fotoUrl;
+
+        contenedorImagen.style.display =
+            "block";
+
+    }
+    else {
+
+        imagen.removeAttribute("src");
+
+        contenedorImagen.style.display =
+            "none";
+
+    }
 
     document.getElementById("detalleUbicacion").innerHTML =
         `<i class="fa-solid fa-location-dot me-2"></i>${reclamo.direccion}`;

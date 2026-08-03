@@ -72,6 +72,7 @@ html {
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    pointer-events: auto;
 }
 
 .mapa-widget {

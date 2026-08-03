@@ -2,6 +2,12 @@
 // MAPA - MAR DEL PLATA TRANSPARENTE
 // ==========================================
 
+// ==========================================
+// CAPAS GLOBALES
+// ==========================================
+
+let heatLayer;
+let ubicacionSeleccionadaMapa = null;
 
 // ==========================================
 // Crear mapa centrado en Mar del Plata
@@ -96,14 +102,7 @@ L.control.layers(
 ).addTo(map);
 
 
-// ==========================================
-// CAPAS GLOBALES
-// ==========================================
 
-
-// Heatmap
-
-let heatLayer;
 
 
 // ==========================================
@@ -216,6 +215,28 @@ map.on("zoomend", () => {
 
 });
 
+
+// ==========================================
+// 
+//  No click en panel modal de pulsoPanel
+// 
+// ==========================================
+
+const pulsoPanel =
+    document.getElementById("pulsoPanel");
+
+if (pulsoPanel) {
+
+    L.DomEvent.disableClickPropagation(
+        pulsoPanel
+    );
+
+    L.DomEvent.disableScrollPropagation(
+        pulsoPanel
+    );
+
+}
+
 // ==========================================
 // BOTÓN NUEVO RECLAMO
 // Mostrar solamente cuando el mapa
@@ -270,3 +291,109 @@ if (
     );
 
 }
+
+
+
+// ==========================================
+// Click en el mapa
+// ==========================================
+
+map.on("click", async function (e) {
+
+    ubicacionSeleccionadaMapa = {
+        latitud: e.latlng.lat,
+        longitud: e.latlng.lng
+    };
+
+
+    const inputDireccion =
+        document.getElementById("direccion");
+
+
+    if (inputDireccion) {
+
+        inputDireccion.value =
+            "Buscando dirección...";
+
+        inputDireccion.disabled = true;
+
+    }
+
+
+    const modal =
+        bootstrap.Modal.getOrCreateInstance(
+            document.getElementById("modalReclamo")
+        );
+
+    modal.show();
+
+
+    try {
+
+        const url =
+            `/api/reclamos/reverse-geocode` +
+            `?latitud=${e.latlng.lat}` +
+            `&longitud=${e.latlng.lng}`;
+
+
+        const response =
+            await fetch(url);
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "No se pudo obtener la dirección."
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (inputDireccion) {
+
+            inputDireccion.value =
+                data.direccion;
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "Error reverse geocoding:",
+            error
+        );
+
+
+        if (inputDireccion) {
+
+            inputDireccion.value =
+                `Ubicación seleccionada en mapa (${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)})`;
+
+        }
+
+    }
+    finally {
+
+        if (inputDireccion) {
+
+            inputDireccion.disabled =
+                false;
+
+        }
+
+    }
+
+});
+
+document
+    .getElementById("modalReclamo")
+    .addEventListener("hidden.bs.modal", () => {
+
+        ubicacionSeleccionadaMapa = null;
+
+    });

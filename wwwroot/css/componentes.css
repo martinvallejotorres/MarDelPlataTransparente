@@ -41,3 +41,8 @@
     background: var(--success);
     color: white;
 }
+
+.reclamo-destacado .card-img-top {
+    height: 190px;
+    object-fit: cover;
+}

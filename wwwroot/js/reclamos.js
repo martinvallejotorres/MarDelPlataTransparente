@@ -225,7 +225,6 @@ async function cargarPulsoCiudad() {
         });
 
 
-        cargarCategoriasMapa(data);
 
     }
     catch (error) {

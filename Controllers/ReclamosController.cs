@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using ReclamosMDP.API.DTOs;
 using Microsoft.AspNetCore.Hosting;
+using System.Globalization;
 
 namespace ReclamosMDP.API.Controllers
 {
@@ -324,6 +325,69 @@ namespace ReclamosMDP.API.Controllers
 
 
 
+        // GET api/reclamos/reverse-geocode?latitud=...&longitud=...
+        [AllowAnonymous]
+        [HttpGet("reverse-geocode")]
+        public async Task<IActionResult> ReverseGeocode([FromQuery] string latitud, [FromQuery] string longitud)
+        {
+            if (
+                !double.TryParse(
+                    latitud,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out var lat
+                )
+                ||
+                !double.TryParse(
+                    longitud,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out var lon
+                )
+            )
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Coordenadas inválidas."
+                });
+            }
+
+
+            if (
+                lat < -90 ||
+                lat > 90 ||
+                lon < -180 ||
+                lon > 180
+            )
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Coordenadas inválidas."
+                });
+            }
+
+
+            var direccion =
+                await _geocoding.ObtenerDireccion(
+                    lat,
+                    lon
+                );
+
+
+            if (string.IsNullOrWhiteSpace(direccion))
+            {
+                return NotFound(new
+                {
+                    mensaje = "No se encontró una dirección para ese punto."
+                });
+            }
+
+
+            return Ok(new
+            {
+                direccion
+            });
+        }
 
 
         //*****************************POST METHOD *****************//
@@ -389,28 +453,138 @@ namespace ReclamosMDP.API.Controllers
 
 
             // ==========================
-            // Geocodificación
+            // Obtener ubicación
             // ==========================
 
-            var coordenadas =
-                await _geocoding.ObtenerCoordenadas(dto.Direccion);
+            double latitud;
+            double longitud;
 
-            if (coordenadas == null)
+            string direccionFinal;
+
+
+            var tieneLatitud =
+                 !string.IsNullOrWhiteSpace(dto.Latitud);
+
+            var tieneLongitud =
+                !string.IsNullOrWhiteSpace(dto.Longitud);
+
+
+            // Si vino solamente una coordenada,
+            // rechazamos la petición.
+            if (tieneLatitud != tieneLongitud)
             {
                 return BadRequest(new
                 {
-                    mensaje = "No se encontró la dirección."
+                    mensaje = "La ubicación seleccionada no es válida."
                 });
             }
 
 
-            var latitud = coordenadas.Value.lat;
-            var longitud = coordenadas.Value.lon;
+            // ==========================
+            // Opción 1:
+            // ubicación seleccionada
+            // directamente en el mapa
+            // ==========================
 
-            var zona = _zonaService.ObtenerZona(
-                latitud,
-                longitud
-            );
+            if (tieneLatitud && tieneLongitud)
+            {
+                if (
+                    !double.TryParse(
+                        dto.Latitud,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out latitud
+                    )
+                    ||
+                    !double.TryParse(
+                        dto.Longitud,
+                        NumberStyles.Float,
+                        CultureInfo.InvariantCulture,
+                        out longitud
+                    )
+                )
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "Las coordenadas seleccionadas no son válidas."
+                    });
+                }
+
+
+                Console.WriteLine(
+                    $"COORDENADAS RECIBIDAS -> Latitud: {latitud} | Longitud: {longitud}"
+                );
+
+
+                if (
+                    latitud < -90 ||
+                    latitud > 90 ||
+                    longitud < -180 ||
+                    longitud > 180
+                )
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "Las coordenadas seleccionadas no son válidas."
+                    });
+                }
+
+
+                var direccionReverse =
+                    await _geocoding.ObtenerDireccion(
+                        latitud,
+                        longitud
+                    );
+
+
+                direccionFinal =
+                    !string.IsNullOrWhiteSpace(direccionReverse)
+                        ? direccionReverse
+                        : $"Ubicación seleccionada en mapa ({latitud:F6}, {longitud:F6})";
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(dto.Direccion))
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "Ingresá una dirección o seleccioná una ubicación en el mapa."
+                    });
+                }
+
+
+                var coordenadas =
+                    await _geocoding.ObtenerCoordenadas(
+                        dto.Direccion
+                    );
+
+
+                if (coordenadas == null)
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "No se encontró la dirección."
+                    });
+                }
+
+
+                latitud = coordenadas.Value.lat;
+                longitud = coordenadas.Value.lon;
+
+                direccionFinal =
+                    dto.Direccion.Trim();
+            }
+
+
+            // ==========================
+            // Obtener zona / barrio
+            // ==========================
+
+            var zona =
+                _zonaService.ObtenerZona(
+                    latitud,
+                    longitud
+                );
 
 
             // ==========================
@@ -418,6 +592,7 @@ namespace ReclamosMDP.API.Controllers
             // ==========================
 
             string? fotoUrl = null;
+
 
             if (dto.Foto != null && dto.Foto.Length > 0)
             {
@@ -471,7 +646,8 @@ namespace ReclamosMDP.API.Controllers
                 Titulo = dto.Titulo,
                 Tipo = dto.Tipo,
                 Descripcion = dto.Descripcion,
-                Direccion = dto.Direccion,
+
+                Direccion = direccionFinal,
 
                 UsuarioId = usuarioId,
 

@@ -232,6 +232,74 @@ hr {
         object-fit: cover;
     }
 
+
+
+.footer-site {
+    margin-top: 50px;
+    padding: 35px 0 20px;
+    background: #111827;
+    color: #f8fafc;
+}
+
+.footer-contenido {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+}
+
+    .footer-contenido strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 17px;
+    }
+
+    .footer-contenido p {
+        max-width: 520px;
+        margin: 0;
+        color: #94a3b8;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+.footer-contacto {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .footer-contacto span {
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .footer-contacto a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #f8fafc;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+        .footer-contacto a:hover {
+            color: #60a5fa;
+        }
+
+.footer-bottom {
+    margin-top: 25px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    color: #64748b;
+    font-size: 12px;
+    text-align: center;
+}
+
+
 /************************************** Responsive *************************/
 
 @media (max-width: 768px) {
@@ -267,6 +335,10 @@ hr {
 
     .reclamo-destacado .card-img-top {
         height: 160px;
+    }
+
+    .footer-contenido {
+        flex-direction: column;
     }
 }
 

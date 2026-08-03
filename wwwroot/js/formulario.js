@@ -271,7 +271,10 @@ async function cargarReclamos() {
 
 }
 
-// ========================== 
+
+
+// ========================== EnviarReclamo ==========================
+
 async function enviarReclamo() {
 
     const titulo = document
@@ -334,11 +337,26 @@ async function enviarReclamo() {
     }
 
 
-    if (direccion.length < 5 || direccion.length > 200) {
+    // ==========================
+    // Validar ubicación
+    // ==========================
+
+    const ubicacionDesdeMapa =
+        typeof ubicacionSeleccionadaMapa !== "undefined" &&
+        ubicacionSeleccionadaMapa !== null;
+
+
+    // Solo exigimos dirección si NO eligió
+    // un punto directamente en el mapa.
+
+    if (
+        !ubicacionDesdeMapa &&
+        (direccion.length < 5 || direccion.length > 200)
+    ) {
 
         mostrarToast(
             "Dirección inválida",
-            "Ingresá una dirección válida.",
+            "Ingresá una dirección válida o seleccioná un punto en el mapa.",
             "warning"
         );
 
@@ -384,6 +402,7 @@ async function enviarReclamo() {
 
             return;
         }
+
     }
 
 
@@ -393,14 +412,52 @@ async function enviarReclamo() {
 
     const formData = new FormData();
 
-    formData.append("titulo", titulo);
-    formData.append("tipo", tipoSeleccionado);
-    formData.append("descripcion", descripcion);
-    formData.append("direccion", direccion);
+    formData.append(
+        "titulo",
+        titulo
+    );
+
+    formData.append(
+        "tipo",
+        tipoSeleccionado
+    );
+
+    formData.append(
+        "descripcion",
+        descripcion
+    );
+
+    formData.append(
+        "direccion",
+        direccion
+    );
+
+
+    // ==========================
+    // Coordenadas desde el mapa
+    // ==========================
+
+    if (ubicacionDesdeMapa) {
+
+        formData.append(
+            "latitud",
+            ubicacionSeleccionadaMapa.latitud
+        );
+
+        formData.append(
+            "longitud",
+            ubicacionSeleccionadaMapa.longitud
+        );
+
+    }
+
 
     if (foto) {
 
-        formData.append("foto", foto);
+        formData.append(
+            "foto",
+            foto
+        );
 
     }
 
@@ -433,7 +490,8 @@ async function enviarReclamo() {
                 method: "POST",
 
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization:
+                        `Bearer ${token}`
                 },
 
                 body: formData
@@ -447,6 +505,7 @@ async function enviarReclamo() {
                 await response.text();
 
             throw new Error(error);
+
         }
 
 
@@ -473,15 +532,31 @@ async function enviarReclamo() {
                     "modalReclamo"
                 )
             )
-            .hide();
+            ?.hide();
 
 
+        // ==========================
         // Limpiar formulario
+        // ==========================
 
-        document.getElementById("titulo").value = "";
-        document.getElementById("descripcion").value = "";
-        document.getElementById("direccion").value = "";
-        document.getElementById("foto").value = "";
+        document.getElementById(
+            "titulo"
+        ).value = "";
+
+        document.getElementById(
+            "descripcion"
+        ).value = "";
+
+        document.getElementById(
+            "direccion"
+        ).value = "";
+
+        document.getElementById(
+            "foto"
+        ).value = "";
+
+
+        ubicacionSeleccionadaMapa = null;
 
 
         cargarReclamos();
