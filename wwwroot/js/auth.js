@@ -74,44 +74,84 @@ function obtenerPerfilGuardado() {
 
 async function login() {
 
-    const email = document.getElementById("loginEmail").value;
+    const email =
+        document.getElementById("loginEmail").value;
 
-    const password = document.getElementById("loginPassword").value;
+    const password =
+        document.getElementById("loginPassword").value;
 
     try {
 
-        const respuesta = await apiFetch("/auth/login", {
+        const respuesta =
+            await apiFetch("/auth/login", {
 
-            method: "POST",
-           
-            body: JSON.stringify({
+                method: "POST",
 
-                email,
-                password
+                body: JSON.stringify({
+                    email,
+                    password
+                })
 
-            })
-        });
+            });
 
-       
+
         guardarSesion(respuesta);
+
         await obtenerPerfil();
 
 
+        const modal =
+            bootstrap.Modal.getInstance(
+                document.getElementById("modalLogin")
+            );
 
-        bootstrap.Modal.getInstance(
-            document.getElementById("modalLogin")
-        ).hide();
+        if (modal) {
+            modal.hide();
+        }
 
 
         actualizarNavbar();
-    }
 
+
+        // ==========================
+        // Volver al reclamo pendiente
+        // ==========================
+
+        const reclamoPendienteId =
+            sessionStorage.getItem(
+                "reclamoPendienteApoyo"
+            );
+
+
+        if (reclamoPendienteId) {
+
+            sessionStorage.removeItem(
+                "reclamoPendienteApoyo"
+            );
+
+
+            const id =
+                Number(reclamoPendienteId);
+
+
+            setTimeout(() => {
+
+                irAReclamo(id);
+
+            }, 300);
+
+        }
+
+    }
     catch (error) {
 
-        console.error("ERROR LOGIN:", error);
+        console.error(
+            "ERROR LOGIN:",
+            error
+        );
 
         mostrarToast(
-            "Error al intentar ingresar. Verifica tus credenciales.",
+            "Error al intentar ingresar. Verifica tus credenciales."
         );
 
     }
@@ -448,6 +488,7 @@ function loginGoogle() {
 
 }
 
+
 window.addEventListener("message", async (event) => {
 
     if (event.origin !== window.location.origin) {
@@ -458,9 +499,10 @@ window.addEventListener("message", async (event) => {
     const mensaje = event.data;
 
 
-    if (!mensaje ||
-        mensaje.tipo !== "google-auth") {
-
+    if (
+        !mensaje ||
+        mensaje.tipo !== "google-auth"
+    ) {
         return;
     }
 
@@ -482,6 +524,10 @@ window.addEventListener("message", async (event) => {
     }
 
 
+    // ==========================
+    // Guardar sesión
+    // ==========================
+
     guardarSesion(
         mensaje.resultado
     );
@@ -493,12 +539,50 @@ window.addEventListener("message", async (event) => {
     actualizarNavbar();
 
 
+    // ==========================
+    // Cerrar modal login
+    // ==========================
+
     bootstrap.Modal
         .getInstance(
             document.getElementById("modalLogin")
         )
         ?.hide();
 
+
+    // ==========================
+    // Volver al reclamo pendiente
+    // ==========================
+
+    const reclamoPendienteId =
+        sessionStorage.getItem(
+            "reclamoPendienteApoyo"
+        );
+
+
+    if (reclamoPendienteId) {
+
+        sessionStorage.removeItem(
+            "reclamoPendienteApoyo"
+        );
+
+
+        const id =
+            Number(reclamoPendienteId);
+
+
+        setTimeout(() => {
+
+            irAReclamo(id);
+
+        }, 300);
+
+    }
+
+
+    // ==========================
+    // Toast
+    // ==========================
 
     mostrarToast(
         "Sesión iniciada",

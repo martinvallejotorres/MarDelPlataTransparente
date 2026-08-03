@@ -75,9 +75,7 @@ async function cargarReclamos() {
 
         listaReclamos.forEach(reclamo => {
 
-            const apoyos = reclamo.apoyosUsuarios
-                ? reclamo.apoyosUsuarios.length
-                : 0;
+            const apoyos = reclamo.apoyos ?? 0;
 
             lista.innerHTML += `
 
@@ -325,7 +323,9 @@ async function guardarEstado() {
         await cargarEstadisticas();
 
         mostrarToast(
-            "Estado actualizado correctamente"
+            "Estado actualizado",
+            "El estado del reclamo se guardó correctamente.",
+            "success"
         );
 
     }
@@ -335,15 +335,39 @@ async function guardarEstado() {
         console.error(error);
 
         mostrarToast(
-            "Error al actualizar el reclamo"
+            "Error",
+            error.message,
+            "danger"
         );
 
     }
 
 }
 
+async function actualizarDatosPagina() {
 
+    try {
 
+        await cargarReclamos();
+
+    }
+    catch (error) {
+
+        console.error(
+            "Error actualizando datos:",
+            error
+        );
+
+    }
+
+}
+
+actualizarDatosPagina();
+
+setInterval(
+    actualizarDatosPagina,
+    15000
+);
 
 document.addEventListener("DOMContentLoaded", () => {
 

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.DataProtection;
 using ReclamosMDP.API.Services;
 using Microsoft.EntityFrameworkCore;
 using ReclamosMDP.API.Data;
@@ -6,7 +8,6 @@ using ReclamosMDP.API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -172,6 +173,14 @@ builder.Services
     });
 
 
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(
+        new DirectoryInfo("/var/lib/reclamosmdp/dataprotection")
+    )
+    .SetApplicationName("MarDelPlataTransparente");
+
+
 var app = builder.Build();
 
 
@@ -183,6 +192,11 @@ using (var scope = app.Services.CreateScope())
 {
     await RoleInitializer.Initialize(
         scope.ServiceProvider
+    );
+
+    await AdminInitializer.Initialize(
+        scope.ServiceProvider,
+        app.Configuration
     );
 }
 

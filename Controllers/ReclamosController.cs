@@ -117,6 +117,7 @@ namespace ReclamosMDP.API.Controllers
 
 
             var urgentes = reclamos
+                .Where(r => r.Estado != "Rechazado")
                 .OrderByDescending(r => r.ApoyosUsuarios.Count())
                 .Take(3)
                 .Select(r => new
@@ -259,8 +260,9 @@ namespace ReclamosMDP.API.Controllers
 
 
             var masApoyados = reclamos
+            .Where(r => r.Estado != "Rechazado")
             .OrderByDescending(r => r.ApoyosUsuarios.Count)
-            .Take(5)
+            .Take(6)
             .Select(r => new
             {
                 r.Id,

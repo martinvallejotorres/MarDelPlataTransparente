@@ -37,27 +37,137 @@ function abrirDetalle(reclamo) {
     document.getElementById("cantidadApoyos").textContent =
         reclamo.apoyos ?? 0;
 
-    const prioridad = obtenerPrioridad(reclamo.apoyos ?? 0);
 
-    const badge = document.getElementById("detallePrioridad");
+    // ==========================
+    // Categoría del reclamo
+    // ==========================
 
-    badge.textContent = prioridad.texto;
+    const badge =
+        document.getElementById("detallePrioridad");
 
+    badge.textContent =
+        reclamo.tipo ?? "Otros";
+
+
+    // Sacamos posibles clases viejas de prioridad
     badge.classList.remove(
         "priority-high",
         "priority-medium",
         "priority-low"
     );
 
-    badge.classList.add(prioridad.clase);
+
+    // ==========================
+    // Timeline
+    // ==========================
 
     generarTimeline(
         reclamo.estado ?? "Recibido"
     );
 
+
+    // Mostrar panel
     detalle.show();
 
 }
+
+
+async function compartirReclamo() {
+
+    if (!reclamoActual) {
+        return;
+    }
+
+    const url = new URL(window.location.origin);
+
+    url.searchParams.set(
+        "reclamo",
+        reclamoActual.id
+    );
+
+
+    const datosCompartir = {
+
+        title:
+            reclamoActual.titulo,
+
+        text:
+            `Mirá este reclamo en Mar del Plata Transparente: ${reclamoActual.titulo}`,
+
+        url:
+            url.toString()
+
+    };
+
+
+    // Celular o navegador compatible
+    if (navigator.share) {
+
+        try {
+
+            await navigator.share(
+                datosCompartir
+            );
+
+        }
+        catch (error) {
+
+            // Si simplemente cerró la ventana de compartir
+            if (error.name !== "AbortError") {
+
+                console.error(
+                    "Error compartiendo:",
+                    error
+                );
+
+            }
+
+        }
+
+        return;
+    }
+
+
+    // PC / navegador sin Web Share API
+    try {
+
+        await navigator.clipboard.writeText(
+            url.toString()
+        );
+
+
+        mostrarToast(
+            "Enlace copiado",
+            "El enlace del reclamo fue copiado al portapapeles.",
+            "success"
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "No se pudo copiar el enlace:",
+            error
+        );
+
+    }
+
+}
+
+const btnCompartir =
+    document.getElementById(
+        "btnCompartir"
+    );
+
+if (btnCompartir) {
+
+    btnCompartir.addEventListener(
+        "click",
+        compartirReclamo
+    );
+
+}
+
 
 function obtenerPrioridad(apoyos) {
 
@@ -106,15 +216,28 @@ async function apoyarReclamo() {
 
     if (!reclamoActual) return;
 
-    const token = localStorage.getItem("token");
+    const token =
+        localStorage.getItem("token");
 
     if (!token) {
 
+        sessionStorage.setItem(
+            "reclamoPendienteApoyo",
+            reclamoActual.id
+        );
+
         mostrarToast(
             "Iniciá sesión",
-            "Necesitás una cuenta para apoyar un reclamo.",
+            "Necesitás una cuenta para apoyar este reclamo.",
             "warning"
         );
+
+        const modalLogin =
+            bootstrap.Modal.getOrCreateInstance(
+                document.getElementById("modalLogin")
+            );
+
+        modalLogin.show();
 
         return;
     }
@@ -122,26 +245,25 @@ async function apoyarReclamo() {
     try {
 
         const data = await apiFetch(
-
             `/reclamos/${reclamoActual.id}/apoyar`,
-
             {
                 method: "POST"
             }
-
         );
 
-        reclamoActual.apoyos = data.apoyos;
+        reclamoActual.apoyos =
+            data.apoyos;
+
+        document.getElementById(
+            "cantidadApoyos"
+        ).textContent =
+            data.apoyos;
 
         mostrarToast(
             "Gracias",
             "Apoyaste este reclamo.",
             "success"
         );
-
-        document.getElementById(
-            "cantidadApoyos"
-        ).textContent = data.apoyos;
 
         cargarPulsoCiudad();
 
@@ -150,7 +272,8 @@ async function apoyarReclamo() {
 
         mostrarToast(
             "Ya apoyaste este reclamo.",
-            "No puedes volver a apoyarlo"
+            "No puedes volver a apoyarlo.",
+            "warning"
         );
 
     }

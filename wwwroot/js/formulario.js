@@ -23,127 +23,255 @@ document.addEventListener("click", function (e) {
     console.log("Seleccionado:", tipoSeleccionado);
 
 });
-// Obtener reclamos desde la API
 
-function cargarReclamos() {
 
 
-    console.log("Ejecutando cargarReclamos()");
+// Agrupar por cercanía geográfica (distancia máxima en grados)
+function agruparReclamos(reclamos, distanciaMaxima = 0.01) {
 
+    const grupos = [];
 
-    fetch('/api/reclamos')
+    reclamos.forEach(reclamo => {
 
+        let grupoEncontrado = null;
 
-        .then(response => {
+        for (const grupo of grupos) {
 
-
-            console.log("Respuesta GET:", response.status);
-
-
-            if (!response.ok) {
-
-                throw new Error("Error obteniendo reclamos");
-
-            }
-
-
-            return response.json();
-
-
-        })
-
-
-        .then(reclamos => {
-
-
-            console.log("Reclamos recibidos:", reclamos);
-
-
-
-            let puntos = [];
-
-
-
-            reclamos.forEach(reclamo => {
-
-
-                puntos.push([
-
-                    reclamo.latitud,
-
-                    reclamo.longitud,
-
-                    1
-
-                ]);
-
-
-            });
-
-
-
-            console.log("Puntos heatmap:", puntos);
-
-
-
-            // Crear marcadores
-
-            crearMarcadores(reclamos);
-
-
-
-
-            // Actualizar heatmap
-
-
-            if (heatLayer) {
-
-                map.removeLayer(heatLayer);
-
-            }
-
-
-
-            heatLayer = L.heatLayer(
-
-                puntos,
-
-                {
-
-                    radius: 30,
-
-                    blur: 25,
-
-                    maxZoom: 15
-
-                }
-
-            ).addTo(map);
-
-
-
-        })
-
-
-        .catch(error => {
-
-
-            console.error(
-
-                "Error cargando reclamos:",
-
-                error
-
+            const distancia = Math.sqrt(
+                Math.pow(
+                    reclamo.latitud - grupo.latitud,
+                    2
+                )
+                +
+                Math.pow(
+                    reclamo.longitud - grupo.longitud,
+                    2
+                )
             );
 
+            if (distancia <= distanciaMaxima) {
+                grupoEncontrado = grupo;
+                break;
+            }
+
+        }
+
+        if (grupoEncontrado) {
+
+            grupoEncontrado.reclamos.push(reclamo);
+
+            const cantidad =
+                grupoEncontrado.reclamos.length;
+
+            grupoEncontrado.latitud =
+                grupoEncontrado.reclamos.reduce(
+                    (suma, r) =>
+                        suma + r.latitud,
+                    0
+                ) / cantidad;
+
+            grupoEncontrado.longitud =
+                grupoEncontrado.reclamos.reduce(
+                    (suma, r) =>
+                        suma + r.longitud,
+                    0
+                ) / cantidad;
+
+        }
+        else {
+
+            grupos.push({
+                latitud: reclamo.latitud,
+                longitud: reclamo.longitud,
+                reclamos: [reclamo]
+            });
+
+        }
+
+    });
+
+    return grupos;
+}
+
+// Obtener color según cantidad de reclamos y apoyos
+function obtenerColorGrupo(grupo) {
+
+    const cantidad =
+        grupo.reclamos.length;
+
+    const votos =
+        grupo.reclamos.reduce(
+            (total, reclamo) =>
+                total + (reclamo.apoyos ?? 0),
+            0
+        );
+
+    const intensidad =
+        (cantidad * 2)
+        +
+        (votos / 10);
+
+    if (intensidad >= 19) {
+        return "#e74c3c";
+    }
+
+    if (intensidad >= 9) {
+        return "#f1c40f";
+    }
+
+    return "#2ecc71";
+}
+
+// Crear ondas de calor para reclamos agrupados
+function crearOndasReclamos(reclamos) {
+
+    if (heatLayer) {
+        map.removeLayer(heatLayer);
+    }
+
+    heatLayer = L.layerGroup();
+
+    const grupos =
+        agruparReclamos(reclamos);
+
+    grupos.forEach(grupo => {
+
+        const color =
+            obtenerColorGrupo(grupo);
+
+        const ondas = [
+            {
+                radio: 36,
+                fillOpacity: 0.07,
+                opacity: 0.15
+            },
+            {
+                radio: 28,
+                fillOpacity: 0.11,
+                opacity: 0.23
+            },
+            {
+                radio: 20,
+                fillOpacity: 0.17,
+                opacity: 0.35
+            }
+        ];
+
+        ondas.forEach(onda => {
+
+            const circulo =
+                L.circleMarker(
+                    [
+                        grupo.latitud,
+                        grupo.longitud
+                    ],
+                    {
+                        radius: onda.radio,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity:
+                            onda.fillOpacity,
+                        opacity:
+                            onda.opacity,
+                        weight: 2,
+                        interactive: false
+                    }
+                );
+
+            heatLayer.addLayer(circulo);
 
         });
 
+    });
 
+    if (map.getZoom() < 16) {
+        heatLayer.addTo(map);
+    }
+}
+
+// Obtener reclamos desde la API
+async function cargarReclamos() {
+
+    try {
+
+        const reclamos = await apiFetch("/reclamos");
+
+
+        // ==========================
+        // Reclamos visibles en mapa
+        // ==========================
+
+        const reclamosVisibles = reclamos.filter(
+            reclamo => reclamo.estado !== "Rechazado"
+        );
+
+
+        // ==========================
+        // Marcadores
+        // ==========================
+
+        crearMarcadores(reclamosVisibles);
+        // Si se abrió la página desde un enlace compartido
+        abrirReclamoDesdeUrl();
+
+        // ==========================
+        // Ondas / intensidad
+        // ==========================
+
+        crearOndasReclamos(
+            reclamosVisibles
+        );
+
+
+        // ==========================
+        // Actualizar detalle abierto
+        // ==========================
+
+        if (
+            typeof reclamoActual !== "undefined" &&
+            reclamoActual
+        ) {
+
+            const actualizado = reclamos.find(
+                r => r.id === reclamoActual.id
+            );
+
+            if (actualizado) {
+
+                reclamoActual = actualizado;
+
+                const contador =
+                    document.getElementById(
+                        "cantidadApoyos"
+                    );
+
+                if (contador) {
+
+                    contador.textContent =
+                        actualizado.apoyos ?? 0;
+
+                }
+
+            }
+
+        }
+
+
+        return reclamos;
+
+    }
+    catch (error) {
+
+        console.error(
+            "Error cargando reclamos:",
+            error
+        );
+
+    }
 
 }
 
-
+// ========================== 
 async function enviarReclamo() {
 
     const titulo = document

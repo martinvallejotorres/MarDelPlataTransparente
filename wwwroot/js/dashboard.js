@@ -40,8 +40,6 @@ async function cargarDashboard() {
 
 }
 
-document.addEventListener("DOMContentLoaded", cargarDashboard);
-
 function crearGraficoCategorias(datos) {
 
     if (graficoCategorias) {

@@ -19,6 +19,7 @@
     <link rel="stylesheet"
           href="css/admin.css">
 
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 
 <body>
@@ -303,9 +304,41 @@
 
     </div>
 
+
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+
+        <div id="toastGlobal"
+             class="toast"
+             role="alert">
+
+            <div class="toast-header">
+
+                <strong id="toastTitulo"
+                        class="me-auto">
+                    Mar del Plata Transparente
+                </strong>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="toast">
+                </button>
+
+            </div>
+
+            <div id="toastMensaje"
+                 class="toast-body">
+            </div>
+
+        </div>
+
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="js/api.js"></script>
+
+    <script src="js/toast.js"></script>
 
     <script src="js/admin.js"></script>
 

@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>1c087a57-fbc4-4ae0-b3d1-e58d7555c1e9</UserSecretsId>
   </PropertyGroup>
-
+<!--
   <ItemGroup>
     <Content Remove="GeoData\barrios.json" />
   </ItemGroup>
-
+-->
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
@@ -31,8 +31,8 @@
     <Folder Include="wwwroot\images\" />
   </ItemGroup>
 
-  <ItemGroup>
+  <!--<ItemGroup>
     <None Include="GeoData\barrios.json" />
   </ItemGroup>
-
+    -->
 </Project>

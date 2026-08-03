@@ -10,6 +10,12 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -29,6 +35,8 @@
     <link rel="stylesheet" href="css/map.css">
 
     <link rel="stylesheet" href="css/detallePanel.css">
+
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
 </head>
 
@@ -71,59 +79,73 @@
 
     </nav>
 
-    <!-- ================= MAPA ================= -->
+    <!-- ================= PULSO CIUDAD PANEL ================= -->
 
     <div id="map">
-        <!-- ================= PULSO CIUDAD PANEL ================= -->
+
         <div id="pulsoPanel">
 
-            <div class="pulso-titulo">
-                <i class="fa-solid fa-wave-square"></i>
-                <span>Pulso de la ciudad</span>
-            </div>
+            <!-- BLOQUE 1 -->
+            <div class="mapa-widget">
 
-            <div class="pulso-kpis">
+                <div class="pulso-titulo">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Pulso de la ciudad</span>
+                </div>
 
-                <div class="pulso-kpi">
+                <div class="pulso-kpis">
 
-                    <strong id="totalReclamos">
-                        0
-                    </strong>
+                    <div class="pulso-kpi">
 
-                    <span>
-                        Reclamos activos
-                    </span>
+                        <strong id="totalReclamos">
+                            0
+                        </strong>
+
+                        <span>
+                            Reclamos activos
+                        </span>
+
+                    </div>
+
+                    <div class="pulso-kpi">
+
+                        <strong id="totalVotos">
+                            0
+                        </strong>
+
+                        <span>
+                            Apoyos totales
+                        </span>
+
+                    </div>
 
                 </div>
 
-                <div class="pulso-kpi">
+            </div>
 
-                    <strong id="totalVotos">
-                        0
-                    </strong>
 
-                    <span>
-                        Apoyos totales
-                    </span>
+            <!-- BLOQUE 2 -->
+            <div class="mapa-widget">
 
+                <div class="pulso-subtitulo">
+                    <i class="fa-solid fa-fire"></i>
+                    <span>Más urgentes</span>
                 </div>
 
-            </div>
+                <div id="topReclamos">
+                    Cargando...
+                </div>
 
-            <div class="pulso-separador"></div>
+                <!-- BLOQUE 3 -->
+                <a href="#dashboardCiudad"
+                   class="btn-ver-estadisticas">
 
-            <div class="pulso-subtitulo">
+                    Ver estadísticas completas
 
-                <i class="fa-solid fa-fire"></i>
+                    <i class="fa-solid fa-arrow-down"></i>
 
-                <span>
-                    Más urgentes
-                </span>
+                </a>
 
-            </div>
-
-            <div id="topReclamos">
-                Cargando...
             </div>
 
         </div>
@@ -377,99 +399,129 @@
          tabindex="-1"
          id="detalleOffcanvas">
 
-        <div class="offcanvas-header border-bottom">
+        <!-- =========================
+         HEADER
+    ========================== -->
 
-            <h4 class="fw-bold mb-0">
+        <div class="offcanvas-header">
 
-                Detalle del Reclamo
-
-            </h4>
-
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="offcanvas">
-            </button>
-
-        </div>
-
-        <div class="offcanvas-body p-0">
-
-            <div class="position-relative">
-
-                <img id="detalleImagen"
-                     class="img-fluid w-100"
-                     src="https://placehold.co/700x400"
-                     alt="Reclamo">
+            <div class="detalle-header-info">
 
                 <span id="detallePrioridad"
-                      class="badge badge-priority priority-high position-absolute top-0 start-0 m-3">
+                      class="detalle-tipo">
 
-                    Alta prioridad
+                    Prioridad
 
                 </span>
 
             </div>
 
-            <div class="p-4">
 
-                <h3 id="detalleTitulo"
-                    class="fw-bold mb-2">
-                </h3>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="offcanvas"
+                    aria-label="Cerrar">
+            </button>
 
-                <div class="text-secondary mb-3"
-                     id="detalleUbicacion">
+        </div>
 
-                    <i class="fa-solid fa-location-dot me-2"></i>
 
-                </div>
+        <!-- =========================
+         BODY
+    ========================== -->
 
-                <p id="detalleDescripcion"
-                   class="text-muted">
-                </p>
+        <div class="offcanvas-body">
 
-                <hr>
+            <!-- TITULO + APOYOS -->
 
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="detalle-cabecera">
 
-                    <div>
+                <div class="detalle-cabecera-texto">
 
-                        <small class="text-secondary">
+                    <h3 id="detalleTitulo">
+                    </h3>
 
-                            Apoyos actuales
 
-                        </small>
+                    <div id="detalleUbicacion"
+                         class="detalle-ubicacion">
 
-                        <h4 id="cantidadApoyos"
-                            class="fw-bold">
-
-                            0
-
-                        </h4>
+                        <i class="fa-solid fa-location-dot"></i>
 
                     </div>
 
-                    <button id="btnApoyar"
-                            class="btn btn-primary-custom">
+                </div>
 
-                        <i class="fa-solid fa-thumbs-up me-2"></i>
 
-                        Apoyar
+                <div class="detalle-apoyos-box">
 
-                    </button>
+                    <strong id="cantidadApoyos">
+                        0
+                    </strong>
+
+                    <span>
+                        Apoyos
+                    </span>
 
                 </div>
 
-                <hr>
+            </div>
 
-                <h5 class="fw-bold mb-4">
 
+            <!-- DESCRIPCION -->
+
+            <p id="detalleDescripcion">
+            </p>
+
+
+            <!-- IMAGEN -->
+
+            <div class="detalle-imagen-contenedor">
+
+                <img id="detalleImagen"
+                     src="https://placehold.co/700x400"
+                     alt="Imagen del reclamo">
+
+            </div>
+
+
+            <!-- ESTADO -->
+
+            <div class="detalle-estado">
+
+                <h5 class="detalle-estado-titulo">
                     Estado del trámite
-
                 </h5>
 
-                <div id="timelineEstado">
 
+                <div id="timelineEstado"
+                     class="timeline">
                 </div>
+
+            </div>
+
+
+            <!-- ACCIONES -->
+
+            <div class="detalle-acciones">
+
+                <button id="btnApoyar"
+                        class="detalle-btn-apoyar">
+
+                    <i class="fa-solid fa-thumbs-up"></i>
+
+                    Apoyar Reclamo
+
+                </button>
+
+
+                <button id="btnCompartir"
+                        class="detalle-btn-compartir">
+
+                    <i class="fa-solid fa-share-nodes"></i>
+
+                    Compartir
+
+                </button>
 
             </div>
 
@@ -871,15 +923,18 @@
 
 
     <!-- ================= JS ================= -->
-    <script src="js/ui.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="js/ui.js"></script>
 
     <script src="js/api.js"></script>
 
@@ -894,6 +949,8 @@
     <script src="js/formulario.js"></script>
 
     <script src="js/dashboard.js"></script>
+
+    <script src="/js/homeRefresh.js"></script>
 
 </body>
 

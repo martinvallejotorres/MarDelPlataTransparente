@@ -1,4 +1,8 @@
-﻿body {
+﻿html {
+    scroll-behavior: smooth;
+}
+
+body {
     background: var(--background);
     font-family: 'Inter',sans-serif;
     color: var(--text);
@@ -21,7 +25,16 @@ hr {
     font-weight: 600;
     font-size: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity .25s ease, transform .25s ease;
 }
+
+    #btnNuevoReclamo.oculto {
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none;
+    }
 
 .tipos-grid {
     display: grid;
@@ -90,108 +103,7 @@ hr {
     filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
 }
 
-#pulsoPanel {
-    position: absolute;
-    top: 18px;
-    left: 18px;
-    width: 275px;
-    background: rgba(255, 255, 255, .94);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,.7);
-    border-radius: 18px;
-    padding: 16px;
-    z-index: 999;
-    box-shadow: 0 12px 35px rgba(15, 23, 42, .16);
-    color: var(--text);
-}
 
-
-/* =========================
-   TITULO
-========================= */
-
-.pulso-titulo {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 15px;
-}
-
-    .pulso-titulo i {
-        color: var(--primary);
-    }
-
-
-/* =========================
-   KPIs
-========================= */
-
-.pulso-kpis {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 14px;
-}
-
-
-.pulso-kpi {
-    min-width: 0;
-}
-
-
-    .pulso-kpi strong {
-        display: block;
-        font-size: 27px;
-        line-height: 1;
-        margin-bottom: 6px;
-    }
-
-
-    .pulso-kpi:nth-child(2) strong {
-        color: var(--primary);
-    }
-
-
-    .pulso-kpi span {
-        display: block;
-        font-size: 11px;
-        line-height: 1.25;
-        color: var(--text-light);
-        text-transform: uppercase;
-        letter-spacing: .3px;
-    }
-
-
-/* =========================
-   SEPARADOR
-========================= */
-
-.pulso-separador {
-    height: 1px;
-    background: var(--border);
-    margin: 14px -16px;
-}
-
-
-/* =========================
-   SUBTITULO
-========================= */
-
-.pulso-subtitulo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-    .pulso-subtitulo i {
-        color: var(--danger);
-    }
 
 /*
 .estadistica {
@@ -245,19 +157,6 @@ hr {
     color: #2887e2;
 }
 
-.urgente-item {
-    padding: 8px 6px;
-    margin-bottom: 3px;
-    border-radius: 10px;
-    transition: background .2s ease;
-}
-
-
-    .urgente-item:hover {
-        background: #f8fafc;
-    }
-
-
 .urgente-header {
     display: flex;
     align-items: center;
@@ -287,14 +186,6 @@ hr {
     text-overflow: ellipsis;
 }
 
-
-.urgente-info {
-    display: flex;
-    justify-content: space-between;
-    padding-left: 25px;
-    font-size: 10px;
-    color: var(--text-light);
-}
 
 .ranking-barrio {
     margin-bottom: 22px;
@@ -393,3 +284,6 @@ hr {
         border-radius: 0;
     }
 }
+
+
+

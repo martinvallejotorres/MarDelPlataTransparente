@@ -4,7 +4,6 @@ const API_URL = "/api";
 async function apiFetch(endpoint, options = {}) {
 
     const token = localStorage.getItem("token");
-    console.log("TOKEN:", token);
     const headers = {
         "Content-Type": "application/json",
         ...options.headers
@@ -13,7 +12,6 @@ async function apiFetch(endpoint, options = {}) {
     if (token) {
         headers["Authorization"] = `Bearer ${token}`;
     }
-    console.log("TOKEN:", token);
     const response = await fetch(API_URL + endpoint, {
         ...options,
         headers

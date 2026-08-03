@@ -210,9 +210,7 @@ namespace ReclamosMDP.API.Controllers
         // POST api/admin/reclamos/{id}/asignar/{usuarioId}
 
         [HttpPost("reclamos/{id}/asignar/{usuarioId}")]
-        public async Task<IActionResult> AsignarReclamo(
-     int id,
-     string usuarioId)
+        public async Task<IActionResult> AsignarReclamo(int id, string usuarioId)
         {
             // Buscar reclamo
             var reclamo = await _context.Reclamos
