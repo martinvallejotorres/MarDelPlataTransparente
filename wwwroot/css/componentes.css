@@ -46,3 +46,679 @@
     height: 190px;
     object-fit: cover;
 }
+
+/* =====================================================
+   LO QUE SE VIENE
+===================================================== */
+
+.proximamente-section {
+    padding: 80px 0;
+    background: linear-gradient( 180deg, #f8fafc 0%, #eef4f8 100% );
+}
+
+
+/* HEADER */
+
+.proximamente-header {
+    max-width: 760px;
+    margin: 0 auto 40px;
+    text-align: center;
+}
+
+.proximamente-badge {
+    display: inline-flex;
+    padding: 6px 12px;
+    margin-bottom: 14px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, .10);
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.proximamente-header h2 {
+    margin-bottom: 12px;
+    color: #172033;
+    font-size: 34px;
+    font-weight: 800;
+}
+
+.proximamente-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+
+/* GRID */
+
+.proximamente-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+}
+
+
+/* CARD */
+
+.proximamente-card {
+    padding: 24px;
+    border: 1px solid rgba(148, 163, 184, .20);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .78);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+    .proximamente-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 38px rgba(15, 23, 42, .10);
+    }
+
+.proximamente-icono {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    background: rgba(37, 99, 235, .10);
+    color: #2563eb;
+    font-size: 19px;
+}
+
+.proximamente-card h3 {
+    margin-bottom: 10px;
+    color: #1e293b;
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.proximamente-card p {
+    min-height: 70px;
+    margin-bottom: 18px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* TAGS */
+
+.proximamente-estados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+    .proximamente-estados span {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+
+/* PREVIEW */
+
+.proximamente-preview {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr);
+    align-items: center;
+    gap: 30px;
+    margin-top: 24px;
+    padding: 30px;
+    border-radius: 20px;
+    background: #172033;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, .18);
+}
+
+.proximamente-preview-texto span {
+    display: block;
+    margin-bottom: 8px;
+    color: #60a5fa;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.proximamente-preview-texto h3 {
+    margin-bottom: 10px;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 750;
+}
+
+.proximamente-preview-texto p {
+    max-width: 620px;
+    margin: 0;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* FILTROS MOCK */
+
+.proximamente-preview-filtros {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.preview-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 12px;
+}
+
+    .preview-filtro small {
+        color: #94a3b8;
+        font-size: 10px;
+        text-transform: uppercase;
+    }
+
+    .preview-filtro strong {
+        color: #fff;
+        font-size: 13px;
+    }
+
+.preview-periodos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+    .preview-periodos span {
+        padding: 7px 6px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .06);
+        color: #94a3b8;
+        font-size: 9px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+        .preview-periodos span.activo {
+            background: #2563eb;
+            color: #fff;
+        }
+
+
+
+
+/* =====================================================
+   MOCKUP FUTURO MAPA
+===================================================== */
+
+.futuro-mapa {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    min-height: 460px;
+    margin-top: 30px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, .20);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, .10);
+}
+
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.futuro-mapa-sidebar {
+    padding: 28px;
+    background: #f8fafc;
+    border-right: 1px solid rgba(148, 163, 184, .18);
+}
+
+
+.futuro-label {
+    display: inline-flex;
+    margin-bottom: 10px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, .10);
+    color: #2563eb;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+
+.futuro-mapa-sidebar h3 {
+    margin-bottom: 8px;
+    color: #172033;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+
+.futuro-mapa-sidebar p {
+    margin-bottom: 26px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* =========================
+   CONTROLES
+========================= */
+
+.futuro-control {
+    margin-bottom: 20px;
+}
+
+
+    .futuro-control label {
+        display: block;
+        margin-bottom: 7px;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+
+.futuro-select {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, .28);
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+    .futuro-select i:first-child {
+        color: #2563eb;
+    }
+
+
+    .futuro-select i:last-child {
+        color: #94a3b8;
+        font-size: 10px;
+    }
+
+
+/* =========================
+   TABS
+========================= */
+
+.futuro-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    padding: 4px;
+    border-radius: 10px;
+    background: #e9eef5;
+}
+
+
+    .futuro-tabs button {
+        padding: 8px 4px;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: #64748b;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: default;
+    }
+
+
+        .futuro-tabs button.activo {
+            background: #fff;
+            color: #2563eb;
+            box-shadow: 0 2px 7px rgba(15, 23, 42, .08);
+        }
+
+
+/* =========================
+   LEYENDA
+========================= */
+
+.futuro-leyenda {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+
+    .futuro-leyenda div {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #64748b;
+        font-size: 11px;
+    }
+
+
+.leyenda-linea {
+    width: 30px;
+    height: 4px;
+    display: inline-block;
+    border-radius: 20px;
+}
+
+
+    .leyenda-linea.finalizada {
+        background: #22c55e;
+    }
+
+
+    .leyenda-linea.ejecucion {
+        background: #f59e0b;
+    }
+
+
+    .leyenda-linea.proxima {
+        background: repeating-linear-gradient( 90deg, #2563eb 0, #2563eb 6px, transparent 6px, transparent 10px );
+    }
+
+
+/* =========================
+   MAPA MOCK
+========================= */
+
+.futuro-mapa-visual {
+    position: relative;
+    overflow: hidden;
+    min-height: 460px;
+    background: linear-gradient( 145deg, #dfe8df, #edf2e8 );
+}
+
+
+/* calles de fondo */
+
+.futuro-calles {
+    position: absolute;
+    inset: 0;
+}
+
+
+.calle {
+    position: absolute;
+    display: block;
+    height: 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .90);
+    box-shadow: 0 0 0 1px rgba(100, 116, 139, .12);
+}
+
+
+.calle-1 {
+    width: 120%;
+    top: 20%;
+    left: -10%;
+    transform: rotate(-18deg);
+}
+
+
+.calle-2 {
+    width: 110%;
+    top: 52%;
+    left: -5%;
+    transform: rotate(13deg);
+}
+
+
+.calle-3 {
+    width: 100%;
+    top: 72%;
+    left: 8%;
+    transform: rotate(-8deg);
+}
+
+
+.calle-4 {
+    width: 80%;
+    top: 12%;
+    left: 35%;
+    transform: rotate(70deg);
+}
+
+
+.calle-5 {
+    width: 85%;
+    top: 40%;
+    left: 4%;
+    transform: rotate(78deg);
+}
+
+
+/* líneas de obra */
+
+.obra {
+    position: absolute;
+    display: block;
+    height: 7px;
+    border-radius: 20px;
+    z-index: 2;
+}
+
+
+.obra-1 {
+    width: 42%;
+    top: 36%;
+    left: 14%;
+    background: #f59e0b;
+    transform: rotate(-18deg);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, .13);
+}
+
+
+.obra-2 {
+    width: 28%;
+    top: 64%;
+    left: 50%;
+    background: #22c55e;
+    transform: rotate(13deg);
+}
+
+
+.obra-3 {
+    width: 32%;
+    top: 25%;
+    left: 58%;
+    background: repeating-linear-gradient( 90deg, #2563eb 0, #2563eb 8px, transparent 8px, transparent 13px );
+    transform: rotate(70deg);
+}
+
+
+/* badge */
+
+.futuro-badge-mapa {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(12px);
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, .10);
+}
+
+
+    .futuro-badge-mapa i {
+        color: #2563eb;
+    }
+
+
+/* info obra */
+
+.futuro-info-obra {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    width: 240px;
+    padding: 15px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .88);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .15);
+}
+
+
+    .futuro-info-obra span {
+        display: block;
+        margin-bottom: 5px;
+        color: #f59e0b;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+
+    .futuro-info-obra strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #1e293b;
+        font-size: 13px;
+    }
+
+
+    .futuro-info-obra small {
+        color: #64748b;
+        font-size: 10px;
+    }
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 992px) {
+
+    .proximamente-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .proximamente-preview {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 850px) {
+
+    .futuro-mapa {
+        grid-template-columns: 1fr;
+    }
+
+    .futuro-mapa-sidebar {
+        border-right: none;
+        border-bottom: 1px solid rgba(148, 163, 184, .18);
+    }
+
+    .futuro-mapa-visual {
+        min-height: 360px;
+    }
+}
+
+
+@media (max-width: 576px) {
+
+    .proximamente-section {
+        padding: 55px 0;
+    }
+
+    .proximamente-header h2 {
+        font-size: 28px;
+    }
+
+    .proximamente-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .proximamente-card p {
+        min-height: 0;
+    }
+}
+
+.futuro-selector-wrap {
+    position: relative;
+}
+
+.futuro-select {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .28);
+    background: #fff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.futuro-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    display: none;
+    flex-direction: column;
+    padding: 6px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, .22);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .12);
+    z-index: 20;
+}
+
+    .futuro-dropdown.abierto {
+        display: flex;
+    }
+
+    .futuro-dropdown button {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
+    }
+
+        .futuro-dropdown button:hover {
+            background: #f1f5f9;
+        }
+
+        .futuro-dropdown button i {
+            width: 16px;
+            color: #2563eb;
+        }
