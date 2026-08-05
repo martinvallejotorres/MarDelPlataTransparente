@@ -40,6 +40,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddHttpClient<GeocodingService>();
 
+builder.Services.AddHttpClient<ComisariasService>();
+
+builder.Services.AddScoped<SeguridadService>();
+
 builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddSingleton<ZonaService>();
