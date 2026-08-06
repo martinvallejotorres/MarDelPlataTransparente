@@ -44,6 +44,8 @@ builder.Services.AddHttpClient<ComisariasService>();
 
 builder.Services.AddScoped<SeguridadService>();
 
+builder.Services.AddHttpClient<ObrasImportService>();
+
 builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddSingleton<ZonaService>();

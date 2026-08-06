@@ -194,9 +194,40 @@ async function cargarDatosSeguridad() {
 
 async function abrirDetalleComisaria(comisaria) {
 
+    // ==========================================
+    // MOSTRAR SEGURIDAD / OCULTAR OBRAS
+    // ==========================================
+
+    const seccionSeguridad =
+        document.querySelector(
+            ".datos-ciudad-seccion"
+        );
+
+    if (seccionSeguridad) {
+        seccionSeguridad.style.display =
+            "block";
+    }
+
+
+    const detalleObra =
+        document.getElementById(
+            "detalleObraDatos"
+        );
+
+    if (detalleObra) {
+        detalleObra.style.display =
+            "none";
+    }
+
+
+    // ==========================================
+    // CABECERA
+    // ==========================================
+
     document.getElementById(
         "datosCiudadCategoria"
-    ).textContent = "Seguridad";
+    ).textContent =
+        "SEGURIDAD";
 
 
     document.getElementById(
@@ -204,6 +235,42 @@ async function abrirDetalleComisaria(comisaria) {
     ).textContent =
         comisaria.nombre;
 
+
+    // ==========================================
+    // ETIQUETAS
+    // ==========================================
+
+    document.getElementById(
+        "datosCiudadEtiquetaDireccion"
+    ).textContent =
+        "Dirección";
+
+
+    document.getElementById(
+        "datosCiudadEtiquetaTelefono"
+    ).textContent =
+        "Teléfono";
+
+
+    // ==========================================
+    // ICONOS
+    // ==========================================
+
+    document.getElementById(
+        "datosCiudadIconoDireccion"
+    ).className =
+        "fa-solid fa-location-dot";
+
+
+    document.getElementById(
+        "datosCiudadIconoTelefono"
+    ).className =
+        "fa-solid fa-phone";
+
+
+    // ==========================================
+    // DATOS DE LA COMISARÍA
+    // ==========================================
 
     document.getElementById(
         "datosCiudadDireccion"
@@ -225,6 +292,10 @@ async function abrirDetalleComisaria(comisaria) {
         "Policía de la Provincia de Buenos Aires";
 
 
+    // ==========================================
+    // DATOS GENERALES DE SEGURIDAD
+    // ==========================================
+
     const datosSeguridad =
         await cargarDatosSeguridad();
 
@@ -235,7 +306,9 @@ async function abrirDetalleComisaria(comisaria) {
             "seguridadCamaras"
         ).textContent =
             datosSeguridad.camaras
-                .toLocaleString("es-AR");
+                .toLocaleString(
+                    "es-AR"
+                );
 
 
         document.getElementById(
@@ -250,24 +323,29 @@ async function abrirDetalleComisaria(comisaria) {
         document.getElementById(
             "seguridadLicitacion"
         ).textContent =
-            datosSeguridad.licitacion;
+            datosSeguridad
+                .licitacion;
 
 
         document.getElementById(
             "seguridadDescripcion"
         ).textContent =
-            datosSeguridad.descripcion;
+            datosSeguridad
+                .descripcion;
+
 
         document.getElementById(
             "seguridadAnio"
         ).textContent =
-            datosSeguridad.anio;
+            datosSeguridad
+                .anio;
 
 
         document.getElementById(
             "seguridadFuente"
         ).textContent =
-            datosSeguridad.fuente;
+            datosSeguridad
+                .fuente;
 
 
         document.getElementById(
@@ -275,10 +353,15 @@ async function abrirDetalleComisaria(comisaria) {
         ).textContent =
             "Actualizado: " +
             formatearFecha(
-                datosSeguridad.fechaActualizacion
+                datosSeguridad
+                    .fechaActualizacion
             );
     }
 
+
+    // ==========================================
+    // ABRIR OFFCANVAS
+    // ==========================================
 
     const offcanvasElement =
         document.getElementById(
@@ -287,9 +370,10 @@ async function abrirDetalleComisaria(comisaria) {
 
 
     const offcanvas =
-        bootstrap.Offcanvas.getOrCreateInstance(
-            offcanvasElement
-        );
+        bootstrap.Offcanvas
+            .getOrCreateInstance(
+                offcanvasElement
+            );
 
 
     offcanvas.show();
@@ -425,6 +509,27 @@ const ControlDatosCiudad =
 
                         <span>
                             Comisarías
+                        </span>
+
+                    </label>
+
+                    <div class="control-datos-separador">
+                        OBRAS
+                    </div>
+
+                    <label class="control-datos-opcion">
+
+                        <input
+                            type="checkbox"
+                            id="toggleObras"
+                        >
+
+                        <span class="control-datos-icono obras">
+                            <i class="fa-solid fa-person-digging"></i>
+                        </span>
+
+                        <span>
+                            Obras públicas
                         </span>
 
                     </label>
