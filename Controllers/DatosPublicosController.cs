@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReclamosMDP.API.DTOs;
 using ReclamosMDP.API.Services;
 
 namespace ReclamosMDP.API.Controllers
@@ -11,9 +12,7 @@ namespace ReclamosMDP.API.Controllers
     )]
 
     [AllowAnonymous]
-
-    public class DatosPublicosController
-        : ControllerBase
+    public class DatosPublicosController: ControllerBase
     {
         private readonly
             ComisariasService
@@ -234,6 +233,143 @@ namespace ReclamosMDP.API.Controllers
         }
 
 
+        [HttpGet("obras/periodo/detalle")]
+        public async Task<IActionResult> ObtenerObrasPeriodoDetalle([FromQuery] int anioDesde, [FromQuery] int mesDesde, [FromQuery] int anioHasta, [FromQuery] int mesHasta)
+        {
+            try
+            {
+                if (
+                    mesDesde < 1 ||
+                    mesDesde > 12 ||
+                    mesHasta < 1 ||
+                    mesHasta > 12
+                )
+                {
+                    return BadRequest(
+                        new
+                        {
+                            error =
+                                "Los meses deben estar entre 1 y 12."
+                        }
+                    );
+                }
+
+
+                var desde =
+                    new DateTime(
+                        anioDesde,
+                        mesDesde,
+                        1
+                    );
+
+
+                var hasta =
+                    new DateTime(
+                        anioHasta,
+                        mesHasta,
+                        1
+                    );
+
+
+                if (desde > hasta)
+                {
+                    return BadRequest(
+                        new
+                        {
+                            error =
+                                "La fecha inicial no puede ser posterior a la final."
+                        }
+                    );
+                }
+
+
+                var obrasBasicas =
+                    await _obrasImportService
+                        .ObtenerObrasPeriodo(
+                            desde,
+                            hasta
+                        );
+
+
+                var detalles =
+                    new List<ObraDetalleDto>();
+
+
+                foreach (
+                    var obra in obrasBasicas
+                )
+                {
+                    try
+                    {
+                        Console.WriteLine(
+                            $"DETALLE OBRA -> {obra.EventoId}"
+                        );
+
+
+                        var detalle =
+                            await _obrasImportService
+                                .ObtenerDetalleObra(
+                                    obra.EventoId
+                                );
+
+
+                        if (detalle != null)
+                        {
+                            detalles.Add(
+                                detalle
+                            );
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(
+                            $"ERROR DETALLE {obra.EventoId} -> {ex}"
+                        );
+                    }
+                }
+
+
+                return Ok(
+                    new
+                    {
+                        desde =
+                            desde.ToString(
+                                "yyyy-MM"
+                            ),
+
+                        hasta =
+                            hasta.ToString(
+                                "yyyy-MM"
+                            ),
+
+                        total =
+                            detalles.Count,
+
+                        obras =
+                            detalles
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    "ERROR OBRAS PERIODO DETALLE -> " +
+                    ex
+                );
+
+
+                return StatusCode(
+                    500,
+                    new
+                    {
+                        error =
+                            "No se pudieron obtener los detalles de las obras."
+                    }
+                );
+            }
+        }
+
+
         [HttpGet("obras/{eventoId:int}/especificaciones-texto")]
         public async Task<IActionResult>ObtenerTextoEspecificaciones(int eventoId)
         {
@@ -274,5 +410,105 @@ namespace ReclamosMDP.API.Controllers
             }
         }
 
+
+        [HttpGet("obras/periodo")]
+        public async Task<IActionResult> ObtenerObrasPeriodo( [FromQuery] int anioDesde, [FromQuery] int mesDesde,[FromQuery] int anioHasta,[FromQuery] int mesHasta)
+        {
+            try
+            {
+                if (
+                    mesDesde < 1 ||
+                    mesDesde > 12 ||
+                    mesHasta < 1 ||
+                    mesHasta > 12
+                )
+                {
+                    return BadRequest(
+                        new
+                        {
+                            error =
+                                "Los meses deben estar entre 1 y 12."
+                        }
+                    );
+                }
+
+
+                var desde =
+                    new DateTime(
+                        anioDesde,
+                        mesDesde,
+                        1
+                    );
+
+
+                var hasta =
+                    new DateTime(
+                        anioHasta,
+                        mesHasta,
+                        1
+                    );
+
+
+                if (desde > hasta)
+                {
+                    return BadRequest(
+                        new
+                        {
+                            error =
+                                "La fecha inicial no puede ser posterior a la final."
+                        }
+                    );
+                }
+
+
+                var obras =
+                    await _obrasImportService
+                        .ObtenerObrasPeriodo(
+                            desde,
+                            hasta
+                        );
+
+
+                return Ok(
+                    new
+                    {
+                        desde =
+                            desde.ToString(
+                                "yyyy-MM"
+                            ),
+
+                        hasta =
+                            hasta.ToString(
+                                "yyyy-MM"
+                            ),
+
+                        total =
+                            obras.Count,
+
+                        obras
+                    }
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    "ERROR PERIODO OBRAS -> " +
+                    ex
+                );
+
+
+                return StatusCode(
+                    500,
+                    new
+                    {
+                        error =
+                            "No se pudieron obtener las obras del período."
+                    }
+                );
+            }
+        }
+
     }
+
+
 }

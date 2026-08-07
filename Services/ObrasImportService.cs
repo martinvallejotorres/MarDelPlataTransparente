@@ -1,9 +1,12 @@
 ﻿using HtmlAgilityPack;
+using Microsoft.AspNetCore.Mvc;
 using ReclamosMDP.API.DTOs;
-using System.Xml;
-using UglyToad.PdfPig;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Xml;
+using UglyToad.PdfPig;
+using Microsoft.Extensions.Caching.Memory;
+
 
 namespace ReclamosMDP.API.Services
 {
@@ -14,7 +17,11 @@ namespace ReclamosMDP.API.Services
 
         private readonly HttpClient _httpClient;
 
-        public ObrasImportService(HttpClient httpClient)
+        private readonly GeocodingService _geocodingService;
+
+        private readonly IMemoryCache _cache;
+
+        public ObrasImportService(HttpClient httpClient, GeocodingService geocodingService, IMemoryCache cache)
         {
             _httpClient = httpClient;
 
@@ -24,6 +31,11 @@ namespace ReclamosMDP.API.Services
                 .ParseAdd(
                     "MarDelPlataTransparente/1.0"
                 );
+
+            _geocodingService =
+              geocodingService;
+
+            _cache = cache;
         }
 
         private async Task<ObraDetalleDto>ObtenerDetalleObraBase(int eventoId)
@@ -104,6 +116,100 @@ namespace ReclamosMDP.API.Services
 
 
             return detalle;
+        }
+
+        public async Task<List<ObraImportDto>> ObtenerObrasPeriodo(
+    DateTime desde,
+    DateTime hasta
+)
+        {
+            var cacheKey =
+                $"obras-periodo-{desde:yyyy-MM}-{hasta:yyyy-MM}";
+
+
+            if (
+                _cache.TryGetValue(
+                    cacheKey,
+                    out List<ObraImportDto>? obrasCache
+                )
+                &&
+                obrasCache != null
+            )
+            {
+                return obrasCache;
+            }
+
+
+            var obras =
+                new List<ObraImportDto>();
+
+
+            var fechaActual =
+                new DateTime(
+                    desde.Year,
+                    desde.Month,
+                    1
+                );
+
+
+            var fechaFinal =
+                new DateTime(
+                    hasta.Year,
+                    hasta.Month,
+                    1
+                );
+
+
+            while (fechaActual <= fechaFinal)
+            {
+                try
+                {
+                    var obrasMes =
+                        await ObtenerObras(
+                            fechaActual.Year,
+                            fechaActual.Month
+                        );
+
+
+                    obras.AddRange(
+                        obrasMes
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"ERROR OBRAS {fechaActual.Month}/{fechaActual.Year} -> {ex.Message}"
+                    );
+                }
+
+
+                fechaActual =
+                    fechaActual.AddMonths(1);
+            }
+
+
+            var resultado =
+                obras
+                    .GroupBy(
+                        obra => obra.EventoId
+                    )
+                    .Select(
+                        grupo => grupo.First()
+                    )
+                    .OrderByDescending(
+                        obra => obra.EventoId
+                    )
+                    .ToList();
+
+
+            _cache.Set(
+                cacheKey,
+                resultado,
+                TimeSpan.FromHours(12)
+            );
+
+
+            return resultado;
         }
 
         public async Task<List<ObraImportDto>>ObtenerObras(int anio, int mes)
@@ -238,7 +344,7 @@ namespace ReclamosMDP.API.Services
                 .ToList();
         }
 
-        public async Task<ObraDetalleDto>ObtenerDetalleObra(int eventoId)
+        public async Task<ObraDetalleDto> ObtenerDetalleObra(int eventoId)
         {
             var detalle =
                 await ObtenerDetalleObraBase(
@@ -246,97 +352,235 @@ namespace ReclamosMDP.API.Services
                 );
 
 
-            var caratula =
+            // ==========================================
+            // ESTADO SEGÚN DOCUMENTACIÓN DISPONIBLE
+            // ==========================================
+
+            detalle.Estado =
+                DetectarEstado(
+                    detalle.Documentos
+                );
+
+
+            // ==========================================
+            // DOCUMENTO PRINCIPAL
+            // ==========================================
+
+            var documentoPrincipal =
+                BuscarDocumentoPrincipal(
+                    detalle.Documentos
+                );
+
+
+            if (documentoPrincipal != null)
+            {
+                var textoPrincipal =
+                    await ObtenerTextoPdf(
+                        documentoPrincipal.Url,
+                        eventoId
+                    );
+
+
+                var nombrePdf =
+                    ExtraerNombreObra(
+                        textoPrincipal
+                    );
+
+
+                if (!string.IsNullOrWhiteSpace(nombrePdf))
+                {
+                    detalle.Nombre =
+                        nombrePdf;
+                }
+
+
+                detalle.Expediente =
+                    ExtraerExpediente(
+                        textoPrincipal
+                    );
+
+
+                detalle.PresupuestoOficial =
+                    ExtraerPresupuestoOficial(
+                        textoPrincipal
+                    );
+
+
+                detalle.GarantiaOferta =
+                    ExtraerGarantiaOferta(
+                        textoPrincipal
+                    );
+
+
+                detalle.FechaApertura =
+                    ExtraerFechaApertura(
+                        textoPrincipal
+                    );
+
+
+                detalle.Licitacion =
+                    ExtraerLicitacion(
+                        textoPrincipal
+                    );
+
+                detalle.Ubicaciones =
+                    ExtraerUbicacionesPuntuales(
+                        textoPrincipal
+                    );
+
+                if (
+                    detalle.Ubicaciones.Count > 0
+                )
+                {
+                    await GeocodificarUbicaciones(
+                        detalle.Ubicaciones
+                    );
+                }
+            }
+
+
+            // ==========================================
+            // ACTA DE APERTURA
+            // Fallback para fecha / licitación
+            // ==========================================
+
+            var actaApertura =
                 detalle.Documentos
                     .FirstOrDefault(
                         d =>
                             d.Nombre.Contains(
-                                "CARATULA",
+                                "ACTA DE APERTURA",
                                 StringComparison.OrdinalIgnoreCase
                             )
                     );
 
 
-            if (caratula != null)
+            if (actaApertura != null)
             {
-                string textoCaratula =
+                var textoActa =
                     await ObtenerTextoPdf(
-                        caratula.Url,
+                        actaApertura.Url,
+                        eventoId
+                    );
+
+
+                if (detalle.FechaApertura == null)
+                {
+                    detalle.FechaApertura =
+                        ExtraerFechaApertura(
+                            textoActa
+                        );
+                }
+
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        detalle.Licitacion
+                    )
+                )
+                {
+                    detalle.Licitacion =
+                        ExtraerLicitacion(
+                            textoActa
+                        );
+                }
+
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        detalle.Expediente
+                    )
+                )
+                {
+                    detalle.Expediente =
+                        ExtraerExpediente(
+                            textoActa
+                        );
+                }
+            }
+
+
+            // ==========================================
+            // DOCUMENTO DE PRESUPUESTO
+            // ==========================================
+
+            var documentoPresupuesto =
+                detalle.Documentos
+                    .FirstOrDefault(
+                        d =>
+                            d.Nombre.Contains(
+                                "PRESUPUESTO",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                    );
+
+
+            if (
+                documentoPresupuesto != null
+                &&
+                detalle.PresupuestoOficial == null
+            )
+            {
+                var textoPresupuesto =
+                    await ObtenerTextoPdf(
+                        documentoPresupuesto.Url,
                         eventoId
                     );
 
 
                 detalle.PresupuestoOficial =
                     ExtraerPresupuestoOficial(
-                        textoCaratula
-                    );
-
-
-                detalle.GarantiaOferta =
-                    ExtraerGarantiaOferta(
-                        textoCaratula
-                    );
-
-
-                detalle.Licitacion =
-                    ExtraerLicitacion(
-                        textoCaratula
-                    );
-
-
-                detalle.Expediente =
-                    ExtraerExpediente(
-                        textoCaratula
-                    );
-
-
-                detalle.FechaApertura =
-                    ExtraerFechaApertura(
-                        textoCaratula
-                    );
-
-                detalle.Nombre =
-                    ExtraerNombreObra(
-                        textoCaratula
+                        textoPresupuesto
                     );
             }
 
+
+            // ==========================================
+            // ESPECIFICACIONES TÉCNICAS
+            // ==========================================
+
             var especificaciones =
                 detalle.Documentos
-             .FirstOrDefault(d =>
-                d.Nombre.Contains(
-                    "ESP TECNICAS",
-                    StringComparison.OrdinalIgnoreCase
-                )
-                ||
-                d.Nombre.Contains(
-                    "ESPECIFICACIONES",
-                    StringComparison.OrdinalIgnoreCase
-                )
-             );
+                    .FirstOrDefault(
+                        d =>
+                            d.Nombre.Contains(
+                                "ESP TECNICAS",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                            ||
+                            d.Nombre.Contains(
+                                "ESPECIFICACIONES",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                    );
+
 
             if (especificaciones != null)
             {
-                string textoEspecificaciones =
+                var textoEspecificaciones =
                     await ObtenerTextoPdf(
                         especificaciones.Url,
                         eventoId
                     );
+
 
                 detalle.UbicacionTexto =
                     ExtraerUbicacionEspecificaciones(
                         textoEspecificaciones
                     );
 
+
                 detalle.SuperficieM2 =
                     ExtraerSuperficieM2(
                         textoEspecificaciones
                     );
 
+
                 detalle.FrentesTrabajo =
                     ExtraerFrentesTrabajo(
                         textoEspecificaciones
                     );
+
 
                 detalle.TipoGeometria =
                     DetectarTipoGeometria(
@@ -344,16 +588,216 @@ namespace ReclamosMDP.API.Services
                     );
             }
 
+
+            // ==========================================
+            // FALLBACK DE UBICACIÓN PARA PLIEGOS MGP
+            // ==========================================
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    detalle.UbicacionTexto
+                )
+                &&
+                documentoPrincipal != null
+            )
+            {
+                var textoPrincipal =
+                    await ObtenerTextoPdf(
+                        documentoPrincipal.Url,
+                        eventoId
+                    );
+
+
+                detalle.UbicacionTexto =
+                    ExtraerUbicacionEspecificaciones(
+                        textoPrincipal
+                    );
+
+
+                if (
+                    !string.IsNullOrWhiteSpace(
+                        detalle.UbicacionTexto
+                    )
+                )
+                {
+                    detalle.TipoGeometria =
+                        DetectarTipoGeometria(
+                            detalle.UbicacionTexto
+                        );
+                }
+            }
+
+
+            var cacheKey =
+             $"obra-detalle-{eventoId}";
+
+
+            if (
+                _cache.TryGetValue(
+                    cacheKey,
+                    out ObraDetalleDto? obraCache
+                )
+                &&
+                obraCache != null
+            )
+            {
+                return obraCache;
+            }
+            _cache.Set(
+                cacheKey,
+                detalle,
+                TimeSpan.FromHours(12)
+            );
+
             return detalle;
         }
 
+        private static string DetectarEstado( List<DocumentoObraDto> documentos)
+        {
+            var tieneActaApertura =
+                documentos.Any(
+                    x =>
+                        x.Nombre.Contains(
+                            "ACTA DE APERTURA",
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                );
+
+
+            if (tieneActaApertura)
+            {
+                return "Apertura realizada";
+            }
+
+
+            return "Licitada";
+        }
+
+        private async Task GeocodificarUbicaciones(List<UbicacionObraDto> ubicaciones)
+        {
+            foreach (var ubicacion in ubicaciones)
+            {
+                var direccion =
+                    PrepararDireccionGeocoding(
+                        ubicacion.Descripcion
+                    );
+
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        direccion
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                try
+                {
+                    var resultado =
+                        await _geocodingService
+                            .ObtenerCoordenadas(
+                                direccion
+                            );
+
+
+                    if (resultado == null)
+                    {
+                        continue;
+                    }
+
+                    var lat =
+                        resultado.Value.lat;
+
+                    var lon =
+                        resultado.Value.lon;
+
+                    if (
+                        !CoordenadaEsDeMarDelPlata(
+                            lat,
+                            lon
+                        )
+                    )
+                    {
+                        Console.WriteLine(
+                            $"COORDENADA DESCARTADA -> {direccion} ({lat}, {lon})"
+                        );
+
+                        continue;
+                    }
+
+                    ubicacion.Latitud =
+                        lat;
+
+                    ubicacion.Longitud =
+                        lon;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"ERROR GEOCODIFICANDO '{direccion}' -> {ex.Message}"
+                    );
+                }
+
+
+                // Nominatim no debe recibir muchas
+                // consultas seguidas.
+                await Task.Delay(
+                    1100
+                );
+            }
+        }
+
+        private static bool CoordenadaEsDeMarDelPlata(double lat, double lon)
+        {
+            return
+                lat >= -38.15 &&
+                lat <= -37.85 &&
+                lon >= -57.75 &&
+                lon <= -57.35;
+        }
+
+        private static string PrepararDireccionGeocoding(string descripcion)
+        {
+            if (string.IsNullOrWhiteSpace(descripcion))
+            {
+                return "";
+            }
+
+            var direccion =
+                descripcion
+                    .Trim()
+                    .TrimEnd('.');
+
+
+            direccion =
+                direccion.Replace(
+                    "Calle ",
+                    "",
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+
+            direccion =
+                direccion.Replace(
+                    "cruce hacia ",
+                    "",
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+
+            return direccion;
+        }
         private static string ExtraerNombreObra(string texto)
         {
-            var match = Regex.Match(
-                texto,
-                @"LICITACI[ÓO]N\s+P[ÚU]BLICA\s+N[º°]?\s*\d+\s*/\s*\d{4}\s+[“""](.+?)[”""]",
-                RegexOptions.IgnoreCase
-            );
+            var match =
+                Regex.Match(
+                    texto,
+                    @"(?:LICITACI[ÓO]N\s+(?:P[ÚU]BLICA|PRIVADA)|CONCURSO\s+DE\s+PRECIOS|CONTRATACI[ÓO]N\s+DIRECTA).*?[“""]\s*(.+?)\s*[”""]",
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.Singleline
+                );
 
             if (!match.Success)
             {
@@ -446,8 +890,8 @@ namespace ReclamosMDP.API.Services
                 "adquisicion",
                 "adquisición",
                 "compra",
-                "provision",
                 "provisión",
+                "provision",
                 "vehiculo",
                 "vehículo",
                 "cemento",
@@ -456,7 +900,16 @@ namespace ReclamosMDP.API.Services
                 "caños",
                 "caños",
                 "elementos de desgaste",
-                "papel"
+                "papel",
+
+                // Servicios / mantenimiento que no
+                // queremos mostrar como obra pública
+                "ascensor",
+                "ascensores",
+                "enterratorio",
+                "enterramiento",
+                "excavación mecanizada de pozos",
+                "excavacion mecanizada de pozos"
             };
 
             if (excluir.Any(palabra => texto.Contains(palabra)))
@@ -475,17 +928,31 @@ namespace ReclamosMDP.API.Services
                 "repavimentación",
                 "fresado",
                 "recapado",
+
                 "construccion",
                 "construcción",
                 "reconstruccion",
                 "reconstrucción",
-                "reparacion",
-                "reparación",
-                "ciclovia",
-                "ciclovía",
+
                 "cordon cuneta",
                 "cordón cuneta",
-                "veredas"
+
+                "vereda",
+                "veredas",
+
+                "rampa",
+                "rampas",
+
+                "ciclovia",
+                "ciclovía",
+
+                "plaza",
+                "parque",
+
+                "desagüe",
+                "desague",
+
+                "infraestructura vial"
             };
 
             return incluir.Any(
@@ -850,110 +1317,247 @@ namespace ReclamosMDP.API.Services
 
         private static string ExtraerLicitacion(string texto)
         {
-            var match = Regex.Match(
-                texto,
-                @"LICITACI[ÓO]N\s+P[ÚU]BLICA\s+N[º°]?\s*(\d+)\s*/\s*(\d{4})",
-                RegexOptions.IgnoreCase
-            );
-
-            if (!match.Success)
+            if (string.IsNullOrWhiteSpace(texto))
             {
                 return "";
             }
 
-            return
-                $"Licitación Pública {match.Groups[1].Value}/{match.Groups[2].Value}";
+
+            var licitacion =
+                Regex.Match(
+                    texto,
+                    @"LICITACI[ÓO]N\s+(P[ÚU]BLICA|PRIVADA)\s+(?:N[º°]?\s*)?(\d+)\s*/\s*(\d{2,4})",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            if (licitacion.Success)
+            {
+                var tipo =
+                    licitacion.Groups[1].Value;
+
+                var numero =
+                    licitacion.Groups[2].Value;
+
+                var anio =
+                    licitacion.Groups[3].Value;
+
+
+                var nombreTipo =
+                    tipo.Contains(
+                        "PRIVADA",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                        ? "Licitación Privada"
+                        : "Licitación Pública";
+
+
+                return
+                    $"{nombreTipo} {numero}/{anio}";
+            }
+
+
+            var directa =
+                Regex.Match(
+                    texto,
+                    @"CONTRATACI[ÓO]N\s+DIRECTA\s+(?:N[º°]?\s*)?(\d+)\s*/\s*(\d{2,4})",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            if (directa.Success)
+            {
+                return
+                    $"Contratación Directa " +
+                    $"{directa.Groups[1].Value}/" +
+                    $"{directa.Groups[2].Value}";
+            }
+
+
+            return "";
         }
 
         private static string ExtraerExpediente(string texto)
         {
-            var match = Regex.Match(
-                texto,
-                @"EXPEDIENTE\s+N[º°]?\s*(\d+)\s*[/–\-]?\s*([A-Z])\s*[/–\-]?\s*(\d{4})",
-                RegexOptions.IgnoreCase
-            );
-
-            if (!match.Success)
+            if (string.IsNullOrWhiteSpace(texto))
             {
                 return "";
             }
 
-            return
-                $"{match.Groups[1].Value}/{match.Groups[2].Value}/{match.Groups[3].Value}";
+
+            // EMVIAL: 24/C/2026
+            var matchEmvial =
+                Regex.Match(
+                    texto,
+                    @"EXPEDIENTE\s+(?:N[º°]?\s*)?(\d+\s*/\s*[A-Z]\s*/\s*\d{4})",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            if (matchEmvial.Success)
+            {
+                return LimpiarTexto(
+                    matchEmvial.Groups[1].Value
+                );
+            }
+
+
+            // MGP: Expediente Nº 326 Dígito 4 Año 2025
+            var matchMgp =
+                Regex.Match(
+                    texto,
+                    @"EXPEDIENTE\s+(?:N[º°]?\s*)?(\d+)\s+D[ÍI]GITO\s+(\d+)\s+A[ÑN]O\s+(\d{4})",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            if (matchMgp.Success)
+            {
+                return
+                    $"{matchMgp.Groups[1].Value}/" +
+                    $"{matchMgp.Groups[2].Value}/" +
+                    $"{matchMgp.Groups[3].Value}";
+            }
+
+
+            return "";
         }
+
 
         private static DateTime? ExtraerFechaApertura(string texto)
         {
-            var match = Regex.Match(
-                texto,
-                @"APERTURA\s+DE\s+PROPUESTAS:\s*(\d{1,2})\s+DE\s+([A-ZÁÉÍÓÚ]+)\s+DE\s+(\d{4})\s*[–\-]\s*(\d{1,2}):(\d{2})",
-                RegexOptions.IgnoreCase
-            );
-
-            if (!match.Success)
+            if (string.IsNullOrWhiteSpace(texto))
             {
                 return null;
             }
 
-            int dia =
-                int.Parse(match.Groups[1].Value);
 
-            int anio =
-                int.Parse(match.Groups[3].Value);
+            // ==========================================
+            // FORMATO MGP
+            // 24 de Julio de 2026 – 10:00 horas
+            // ==========================================
 
-            int hora =
-                int.Parse(match.Groups[4].Value);
-
-            int minuto =
-                int.Parse(match.Groups[5].Value);
-
-            int mes =
-                ObtenerNumeroMes(
-                    match.Groups[2].Value
+            var matchMgp =
+                Regex.Match(
+                    texto,
+                    @"(\d{1,2})\s+de\s+([A-Za-zÁÉÍÓÚáéíóúÑñ]+)\s+de\s+(\d{4}).{0,20}?(\d{1,2}):(\d{2})",
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.Singleline
                 );
 
-            if (mes == 0)
+
+            if (matchMgp.Success)
             {
-                return null;
+                var dia =
+                    int.Parse(
+                        matchMgp.Groups[1].Value
+                    );
+
+
+                var mes =
+                    ObtenerNumeroMes(
+                        matchMgp.Groups[2].Value
+                    );
+
+
+                var anio =
+                    int.Parse(
+                        matchMgp.Groups[3].Value
+                    );
+
+
+                var hora =
+                    int.Parse(
+                        matchMgp.Groups[4].Value
+                    );
+
+
+                var minuto =
+                    int.Parse(
+                        matchMgp.Groups[5].Value
+                    );
+
+
+                if (mes > 0)
+                {
+                    return new DateTime(
+                        anio,
+                        mes,
+                        dia,
+                        hora,
+                        minuto,
+                        0
+                    );
+                }
             }
 
-            return new DateTime(
-                anio,
-                mes,
-                dia,
-                hora,
-                minuto,
-                0,
-                DateTimeKind.Unspecified
-            );
+
+            // ==========================================
+            // FORMATO NUMÉRICO / EMVIAL
+            // ==========================================
+
+            var matchNumerico =
+                Regex.Match(
+                    texto,
+                    @"(\d{1,2})[/-](\d{1,2})[/-](\d{4}).{0,20}?(\d{1,2}):(\d{2})",
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.Singleline
+                );
+
+
+            if (matchNumerico.Success)
+            {
+                return new DateTime(
+                    int.Parse(
+                        matchNumerico.Groups[3].Value
+                    ),
+
+                    int.Parse(
+                        matchNumerico.Groups[2].Value
+                    ),
+
+                    int.Parse(
+                        matchNumerico.Groups[1].Value
+                    ),
+
+                    int.Parse(
+                        matchNumerico.Groups[4].Value
+                    ),
+
+                    int.Parse(
+                        matchNumerico.Groups[5].Value
+                    ),
+
+                    0
+                );
+            }
+
+
+            return null;
         }
 
         private static int ObtenerNumeroMes(string mes)
         {
             mes =
-                mes
-                    .Trim()
-                    .ToUpperInvariant()
-                    .Replace("Á", "A")
-                    .Replace("É", "E")
-                    .Replace("Í", "I")
-                    .Replace("Ó", "O")
-                    .Replace("Ú", "U");
+               mes
+                   .Trim()
+                   .ToLowerInvariant();
 
             return mes switch
             {
-                "ENERO" => 1,
-                "FEBRERO" => 2,
-                "MARZO" => 3,
-                "ABRIL" => 4,
-                "MAYO" => 5,
-                "JUNIO" => 6,
-                "JULIO" => 7,
-                "AGOSTO" => 8,
-                "SEPTIEMBRE" => 9,
-                "OCTUBRE" => 10,
-                "NOVIEMBRE" => 11,
-                "DICIEMBRE" => 12,
+                "enero" => 1,
+                "febrero" => 2,
+                "marzo" => 3,
+                "abril" => 4,
+                "mayo" => 5,
+                "junio" => 6,
+                "julio" => 7,
+                "agosto" => 8,
+                "septiembre" => 9,
+                "setiembre" => 9,
+                "octubre" => 10,
+                "noviembre" => 11,
+                "diciembre" => 12,
 
                 _ => 0
             };
@@ -1024,6 +1628,33 @@ namespace ReclamosMDP.API.Services
 
 
             return null;
+        }
+
+        private static DocumentoObraDto? BuscarDocumentoPrincipal(List<DocumentoObraDto> documentos)
+        {
+            return documentos.FirstOrDefault(
+                       x =>
+                           x.Nombre.Contains(
+                               "CARATULA",
+                               StringComparison.OrdinalIgnoreCase
+                           )
+                   )
+                   ??
+                   documentos.FirstOrDefault(
+                       x =>
+                           x.Nombre.Contains(
+                               "PLIEGO DE BASES",
+                               StringComparison.OrdinalIgnoreCase
+                           )
+                   )
+                   ??
+                   documentos.FirstOrDefault(
+                       x =>
+                           x.Nombre.Contains(
+                               "PLIEGO",
+                               StringComparison.OrdinalIgnoreCase
+                           )
+                   );
         }
 
         private static string CrearUrlAbsoluta(string href)
@@ -1106,20 +1737,165 @@ namespace ReclamosMDP.API.Services
 
         private static string ExtraerUbicacionEspecificaciones(string texto)
         {
-            var match = Regex.Match(
-                texto,
-                @"UBICACI[ÓO]N:\s*(.+?)(?:ART[ÍI]CULO|$)",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline
-            );
-
-            if (!match.Success)
+            if (string.IsNullOrWhiteSpace(texto))
             {
                 return "";
             }
 
-            return LimpiarTexto(
-                match.Groups[1].Value
-            ).Trim(' ', '-', '.');
+
+            var match =
+                Regex.Match(
+                    texto,
+                    @"UBICACI[ÓO]N\s*:\s*(.+?)(?=\s*(?:ART[ÍI]CULO\s+(?:N[º°]?\s*)?\d+|PRESUPUESTO\s+OFICIAL|FECHA\s+Y\s+HORA|PLIEGO\s+SIN\s+CARGO|CONTRATACI[ÓO]N\s+DIRECTA|EXPEDIENTE\s+N|OBJETO\s*:))",
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.Singleline
+                );
+
+
+            if (match.Success)
+            {
+                return LimpiarTexto(
+                    match.Groups[1].Value
+                );
+            }
+
+
+            // Fallback: primera línea después de UBICACIÓN
+            var fallback =
+                Regex.Match(
+                    texto,
+                    @"UBICACI[ÓO]N\s*:\s*([^\r\n]+)",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            if (fallback.Success)
+            {
+                return LimpiarTexto(
+                    fallback.Groups[1].Value
+                );
+            }
+
+
+            return "";
+        }
+
+        private static List<UbicacionObraDto> ExtraerUbicacionesPuntuales(string texto)
+        {
+            var ubicaciones =
+       new List<UbicacionObraDto>();
+
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return ubicaciones;
+            }
+
+
+            var matchLocalizacion =
+                Regex.Match(
+                    texto,
+                    @"LOCALIZACI[ÓO]N(.+?)(?=ESPECIFICACIONES\s+TECNICAS|GENERALIDADES)",
+                    RegexOptions.IgnoreCase |
+                    RegexOptions.Singleline
+                );
+
+
+            if (!matchLocalizacion.Success)
+            {
+                return ubicaciones;
+            }
+
+
+            var bloque =
+                matchLocalizacion
+                    .Groups[1]
+                    .Value;
+
+
+            var matches =
+                Regex.Matches(
+                    bloque,
+                    @"-\s*(.+?)(?=\s*-\s*|$)",
+                    RegexOptions.Singleline
+                );
+
+
+            foreach (Match match in matches)
+            {
+                var descripcion =
+                    LimpiarTexto(
+                        match.Groups[1].Value
+                    );
+
+
+                // ==========================================
+                // CORTAR BASURA QUE VIENE DESPUÉS
+                // ==========================================
+
+                descripcion =
+                    Regex.Replace(
+                        descripcion,
+                        @"\s*Expediente\s+N[º°]?.*$",
+                        "",
+                        RegexOptions.IgnoreCase
+                    );
+
+
+                descripcion =
+                    descripcion.Trim();
+
+
+                // ==========================================
+                // DESCARTAR TEXTO QUE NO ES UBICACIÓN
+                // ==========================================
+
+                if (
+                    string.IsNullOrWhiteSpace(
+                        descripcion
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                if (
+                    descripcion.Contains(
+                        "CONTRATACION",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    ||
+                    descripcion.Contains(
+                        "CONTRATACIÓN",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    ||
+                    descripcion.Contains(
+                        "CUERPO",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    ||
+                    descripcion.Contains(
+                        "EXPEDIENTE",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                ubicaciones.Add(
+                    new UbicacionObraDto
+                    {
+                        Descripcion =
+                            descripcion
+                    }
+                );
+            }
+
+
+            return ubicaciones;
         }
 
         private static double? ExtraerSuperficieM2(string texto)

@@ -35,6 +35,8 @@
         public string TipoGeometria { get; set; } = "";
 
         public List<DocumentoObraDto> Documentos { get; set; } = new();
+
+        public List<UbicacionObraDto> Ubicaciones { get; set; } = new();
     }
 
 

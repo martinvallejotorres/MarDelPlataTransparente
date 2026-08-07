@@ -11,6 +11,8 @@ let obrasCargadas = false;
 
 let obrasDetalle = [];
 
+let obrasCargandoPromise = null;
+
 let filtroObrasActual ="todas";
 
 // ==========================================
@@ -51,82 +53,90 @@ async function cargarObras() {
         return;
     }
 
-    try {
 
-        const response =
-            await fetch(
-                "/api/datos-publicos/obras?anio=2026&mes=6"
-            );
-
-        if (!response.ok) {
-            throw new Error(
-                `Error HTTP ${response.status}`
-            );
-        }
-
-        const obrasBasicas =
-            await response.json();
+    // Si ya hay una carga en curso,
+    // esperamos esa misma carga.
+    if (obrasCargandoPromise) {
+        return obrasCargandoPromise;
+    }
 
 
-        obrasDetalle = [];
-
-
-        for (const obraBasica of obrasBasicas) {
+    obrasCargandoPromise =
+        (async function () {
 
             try {
 
-                const detalleResponse =
+                const response =
                     await fetch(
-                        `/api/datos-publicos/obras/${obraBasica.eventoId}`
+                        "/api/datos-publicos/obras/periodo/detalle" +
+                        "?anioDesde=2026" +
+                        "&mesDesde=1" +
+                        "&anioHasta=2026" +
+                        "&mesHasta=8"
                     );
 
-                if (!detalleResponse.ok) {
-                    continue;
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Error HTTP ${response.status}`
+                    );
                 }
 
 
-                const detalle =
-                    await detalleResponse.json();
+                const resultado =
+                    await response.json();
 
 
-                obrasDetalle.push(
-                    detalle
+                obrasDetalle =
+                    resultado.obras || [];
+
+
+                obrasLayer.clearLayers();
+
+
+                obrasDetalle.forEach(
+                    obra => {
+                        agregarObraAlMapa(
+                            obra
+                        );
+                    }
                 );
 
 
-                agregarObraAlMapa(
-                    detalle
+                obrasCargadas =
+                    true;
+
+
+                actualizarPanelObras();
+
+
+                console.log(
+                    "Obras cargadas:",
+                    obrasDetalle
                 );
 
             }
             catch (error) {
 
                 console.error(
-                    "Error obteniendo detalle de obra:",
-                    obraBasica.eventoId,
+                    "Error cargando obras:",
                     error
                 );
+
+                throw error;
+
             }
-        }
+            finally {
+
+                obrasCargandoPromise =
+                    null;
+
+            }
+
+        })();
 
 
-        obrasCargadas = true;
-
-        actualizarPanelObras();
-
-        console.log(
-            "Obras cargadas:",
-            obrasDetalle
-        );
-
-    }
-    catch (error) {
-
-        console.error(
-            "Error cargando obras:",
-            error
-        );
-    }
+    return obrasCargandoPromise;
 }
 
 function abrirPanelObras() {
@@ -186,6 +196,8 @@ function actualizarPanelObras() {
     actualizarKpisObras();
 
     renderizarListaObras();
+
+    actualizarPresupuestoFiltrado();
 }
 
 function actualizarKpisObras() {
@@ -269,28 +281,40 @@ function clasificarEstadoObra(obra) {
 
     const estado =
         (obra.estado || "")
+            .trim()
             .toLowerCase();
 
 
     if (
-        estado.includes(
-            "final"
-        )
+        estado.includes("final")
         ||
-        estado.includes(
-            "termin"
-        )
+        estado.includes("termin")
     ) {
         return "finalizadas";
     }
 
 
     if (
-        estado.includes(
-            "ejec"
-        )
+        estado.includes("ejec")
+        ||
+        estado.includes("inicio de obra")
     ) {
         return "ejecucion";
+    }
+
+
+    if (
+        estado.includes("adjudic")
+        ||
+        estado.includes("apertura")
+        ||
+        estado.includes("licitad")
+        ||
+        estado.includes("contratación")
+        ||
+        estado.includes("contratacion")
+    ) {
+        return "proximas";
     }
 
 
@@ -310,24 +334,8 @@ function renderizarListaObras() {
     }
 
 
-    let obras =
-        [...obrasDetalle];
-
-
-    if (
-        filtroObrasActual !==
-        "todas"
-    ) {
-
-        obras =
-            obras.filter(
-                obra =>
-                    clasificarEstadoObra(
-                        obra
-                    ) ===
-                    filtroObrasActual
-            );
-    }
+    const obras =
+        obtenerObrasFiltradas();
 
 
     if (
@@ -396,6 +404,40 @@ function renderizarListaObras() {
 
             }
         );
+}
+
+function desactivarModoObras() {
+
+    const overlay =
+        document.getElementById(
+            "overlayPanelObras"
+        );
+
+    const toggleObras =
+        document.getElementById(
+            "toggleObras"
+        );
+
+
+    overlay?.classList.remove(
+        "abierto"
+    );
+
+
+    if (toggleObras) {
+        toggleObras.checked = false;
+    }
+
+
+    if (
+        map.hasLayer(
+            obrasLayer
+        )
+    ) {
+        map.removeLayer(
+            obrasLayer
+        );
+    }
 }
 
 function crearTarjetaObra(obra) {
@@ -475,15 +517,21 @@ function crearTarjetaObra(obra) {
 
 function obtenerTextoEstadoObra(obra) {
 
+    if (
+        obra.estado &&
+        obra.estado.trim() !== ""
+    ) {
+        return obra.estado;
+    }
+
+
     const clasificacion =
         clasificarEstadoObra(
             obra
         );
 
 
-    switch (
-    clasificacion
-    ) {
+    switch (clasificacion) {
 
         case "ejecucion":
             return "En ejecución";
@@ -492,19 +540,108 @@ function obtenerTextoEstadoObra(obra) {
             return "Finalizada";
 
         default:
-            return "Próxima";
+            return "En proceso";
     }
 }
 
+function ocultarPanelObras() {
+
+    const overlay =
+        document.getElementById(
+            "overlayPanelObras"
+        );
+
+    overlay?.classList.remove(
+        "abierto"
+    );
+}
 function enfocarObra(obra) {
 
-    /*
-        Si en el futuro tenemos geometría
-        exacta, primero enfocamos el mapa.
+    const ubicacionesValidas =
+        (obra.ubicaciones || [])
+            .filter(
+                ubicacion =>
+                    ubicacion.latitud != null &&
+                    ubicacion.longitud != null
+            );
 
-        Para obras generales abrimos
-        directamente su ficha.
-    */
+
+    // ==========================================
+    // OBRA CON UBICACIÓN EN MAPA
+    // ==========================================
+
+    if (ubicacionesValidas.length > 0) {
+
+        const puntos =
+            ubicacionesValidas.map(
+                ubicacion => [
+                    ubicacion.latitud,
+                    ubicacion.longitud
+                ]
+            );
+
+
+        if (puntos.length === 1) {
+
+            map.flyTo(
+                puntos[0],
+                17,
+                {
+                    duration: 1.2
+                }
+            );
+
+        }
+        else {
+
+            const bounds =
+                L.latLngBounds(
+                    puntos
+                );
+
+
+            map.flyToBounds(
+                bounds,
+                {
+                    padding:
+                        [60, 60],
+
+                    maxZoom: 17,
+
+                    duration: 1.2
+                }
+            );
+        }
+
+
+        // Cerramos Obras y desmarcamos checkbox
+        desactivarModoObras();
+
+
+        // Dejamos que se vea primero
+        // el movimiento del mapa.
+        setTimeout(
+            function () {
+
+                abrirDetalleObra(
+                    obra
+                );
+
+            },
+            900
+        );
+
+
+        return;
+    }
+
+
+    // ==========================================
+    // OBRA SIN UBICACIÓN PRECISA
+    // ==========================================
+
+    desactivarModoObras();
+
 
     abrirDetalleObra(
         obra
@@ -516,6 +653,29 @@ function enfocarObra(obra) {
 // ==========================================
 
 function agregarObraAlMapa(obra) {
+
+    // ==========================================
+    // UBICACIONES PUNTUALES
+    // ==========================================
+
+    const tieneUbicacionesPuntuales =
+        obra.ubicaciones &&
+        obra.ubicaciones.some(
+            ubicacion =>
+                ubicacion.latitud != null &&
+                ubicacion.longitud != null
+        );
+
+
+    if (tieneUbicacionesPuntuales) {
+
+        agregarUbicacionesPuntualesObra(
+            obra
+        );
+
+        return;
+    }
+
 
     const tipo =
         (obra.tipoGeometria || "")
@@ -582,6 +742,107 @@ function agregarObraAlMapa(obra) {
                 "Obra sin geometría precisa:",
                 obra.nombre
             );
+
+            break;
+    }
+}
+
+
+function obtenerObrasFiltradas() {
+
+    if (
+        filtroObrasActual ===
+        "todas"
+    ) {
+        return [...obrasDetalle];
+    }
+
+
+    return obrasDetalle.filter(
+        obra =>
+            clasificarEstadoObra(
+                obra
+            ) ===
+            filtroObrasActual
+    );
+}
+
+function actualizarPresupuestoFiltrado() {
+
+    const obras =
+        obtenerObrasFiltradas();
+
+
+    const presupuesto =
+        obras.reduce(
+            (total, obra) =>
+                total +
+                Number(
+                    obra.presupuestoOficial
+                    || 0
+                ),
+            0
+        );
+
+
+    const elemento =
+        document.getElementById(
+            "obrasPresupuestoTotal"
+        );
+
+
+    if (elemento) {
+
+        elemento.textContent =
+            formatearDineroObra(
+                presupuesto
+            );
+    }
+
+
+    const etiqueta =
+        document.querySelector(
+            ".panel-obras-presupuesto span"
+        );
+
+
+    if (!etiqueta) {
+        return;
+    }
+
+
+    switch (
+    filtroObrasActual
+    ) {
+
+        case "ejecucion":
+
+            etiqueta.textContent =
+                "Presupuesto oficial — obras en ejecución";
+
+            break;
+
+
+        case "proximas":
+
+            etiqueta.textContent =
+                "Presupuesto oficial — obras en proceso";
+
+            break;
+
+
+        case "finalizadas":
+
+            etiqueta.textContent =
+                "Presupuesto oficial — obras finalizadas";
+
+            break;
+
+
+        default:
+
+            etiqueta.textContent =
+                "Presupuesto oficial relevado";
 
             break;
     }
@@ -1130,6 +1391,97 @@ function mostrarDatosObra(obra) {
     }
 }
 
+function agregarUbicacionesPuntualesObra(obra) {
+
+    if (
+        !obra.ubicaciones ||
+        obra.ubicaciones.length === 0
+    ) {
+        return;
+    }
+
+
+    const ubicacionesValidas =
+        obra.ubicaciones.filter(
+            ubicacion =>
+                ubicacion.latitud != null &&
+                ubicacion.longitud != null
+        );
+
+
+    ubicacionesValidas.forEach(
+        ubicacion => {
+
+            const icono =
+                L.divIcon({
+                    className:
+                        "obra-marker-container",
+
+                    html: `
+                        <div class="obra-marker">
+                            <i class="fa-solid fa-person-digging"></i>
+                        </div>
+                    `,
+
+                    iconSize:
+                        [40, 40],
+
+                    iconAnchor:
+                        [20, 20]
+                });
+
+
+            const marker =
+                L.marker(
+                    [
+                        ubicacion.latitud,
+                        ubicacion.longitud
+                    ],
+                    {
+                        icon: icono
+                    }
+                );
+
+
+            marker.bindTooltip(
+                `
+                    <div class="obra-tooltip">
+
+                        <strong>
+                            ${obra.nombre}
+                        </strong>
+
+                        <span>
+                            ${ubicacion.descripcion}
+                        </span>
+
+                    </div>
+                `,
+                {
+                    direction: "top"
+                }
+            );
+
+
+            marker.on(
+                "click",
+                function () {
+
+                    abrirDetalleObra(
+                        obra
+                    );
+
+                }
+            );
+
+
+            obrasLayer.addLayer(
+                marker
+            );
+        }
+    );
+}
+
 
 // ==========================================
 // FORMATO MONETARIO
@@ -1230,12 +1582,12 @@ document.addEventListener(
 
 
             filtroObrasActual =
-                botonFiltro
-                    .dataset
-                    .filtro;
+                botonFiltro.dataset.filtro;
 
 
             renderizarListaObras();
+
+            actualizarPresupuestoFiltrado();
 
             return;
         }
@@ -1265,4 +1617,21 @@ document.getElementById("overlayPanelObras")?.addEventListener(
             }
 
         }
-    );
+);
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        cargarObras()
+            .catch(
+                error => {
+                    console.warn(
+                        "No se pudieron precargar las obras:",
+                        error
+                    );
+                }
+            );
+
+    }
+);

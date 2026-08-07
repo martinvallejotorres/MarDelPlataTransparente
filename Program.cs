@@ -46,6 +46,7 @@ builder.Services.AddScoped<SeguridadService>();
 
 builder.Services.AddHttpClient<ObrasImportService>();
 
+
 builder.Services.AddScoped<JwtService>();
 
 builder.Services.AddSingleton<ZonaService>();
@@ -56,7 +57,7 @@ builder.Services.AddDbContext<ReclamosDbContext>(
         options.UseNpgsql(connectionString)
 );
 
-
+builder.Services.AddMemoryCache();
 // =========================================
 // IDENTITY
 // =========================================
