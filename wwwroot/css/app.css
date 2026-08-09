@@ -300,6 +300,222 @@ hr {
 }
 
 
+.seccion-obras-publicas {
+    padding: 80px 0;
+    background: #f7f9fc;
+}
+
+
+.seccion-obras-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+
+    .seccion-obras-header h2 {
+        font-size: 2rem;
+        font-weight: 750;
+        margin-bottom: 10px;
+    }
+
+
+    .seccion-obras-header p {
+        color: #64748b;
+        max-width: 650px;
+        margin: 0;
+    }
+
+
+.selector-anio-obras {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+
+    .selector-anio-obras label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+    }
+
+
+    .selector-anio-obras select {
+        min-width: 130px;
+        padding: 11px 14px;
+        border-radius: 10px;
+        border: 1px solid #dbe2ea;
+        background: white;
+    }
+
+
+.resumen-obras-anio {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+
+    .resumen-obras-anio > div {
+        background: white;
+        border: 1px solid #e8edf3;
+        border-radius: 14px;
+        padding: 18px 20px;
+    }
+
+
+    .resumen-obras-anio span {
+        display: block;
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-bottom: 6px;
+    }
+
+
+    .resumen-obras-anio strong {
+        font-size: 1.35rem;
+        color: #0f172a;
+    }
+
+
+.filtros-historial-obras {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+
+    .filtros-historial-obras input,
+    .filtros-historial-obras select {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #dbe2ea;
+        border-radius: 10px;
+        background: white;
+        outline: none;
+    }
+
+
+.lista-obras-anio {
+    display: grid;
+    gap: 14px;
+}
+
+
+.obra-historial-card {
+    background: white;
+    border: 1px solid #e5eaf0;
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+
+    .obra-historial-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, .08);
+    }
+
+
+.obra-historial-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+
+.obra-historial-estado {
+    background: #eef4ff;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+
+.obra-historial-organismo {
+    color: #64748b;
+    font-size: .8rem;
+}
+
+
+.obra-historial-card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+}
+
+
+.obra-historial-datos {
+    display: flex;
+    gap: 35px;
+}
+
+
+    .obra-historial-datos span {
+        display: block;
+        font-size: .72rem;
+        color: #64748b;
+        margin-bottom: 3px;
+    }
+
+
+    .obra-historial-datos strong {
+        font-size: .88rem;
+    }
+
+
+.obra-historial-acciones {
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+}
+
+
+    .obra-historial-acciones button {
+        border-radius: 9px;
+        padding: 9px 13px;
+        font-size: .82rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+
+
+        .obra-historial-acciones button:first-child {
+            border: 1px solid #dbe2ea;
+            background: white;
+        }
+
+
+    .obra-historial-acciones .btn-ver-mapa {
+        border: none;
+        background: #0d6efd;
+        color: white;
+    }
+
+
+.sin-obras-anio,
+.obras-cargando,
+.obras-error {
+    padding: 35px;
+    text-align: center;
+    background: white;
+    border-radius: 14px;
+    color: #64748b;
+}
+
+
 /************************************** Responsive *************************/
 
 @media (max-width: 768px) {
@@ -339,6 +555,37 @@ hr {
 
     .footer-contenido {
         flex-direction: column;
+    }
+
+    .seccion-obras-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+
+    .filtros-historial-obras {
+        grid-template-columns: 1fr;
+    }
+
+
+    .resumen-obras-anio {
+        grid-template-columns: 1fr;
+    }
+
+
+    .obra-historial-card {
+        flex-direction: column;
+    }
+
+
+    .obra-historial-datos {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+
+    .obra-historial-acciones {
+        min-width: 0;
     }
 }
 

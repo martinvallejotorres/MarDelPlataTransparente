@@ -37,6 +37,8 @@
         public List<DocumentoObraDto> Documentos { get; set; } = new();
 
         public List<UbicacionObraDto> Ubicaciones { get; set; } = new();
+
+        public List<TramoObraDto> Tramos { get; set; } = new();
     }
 
 

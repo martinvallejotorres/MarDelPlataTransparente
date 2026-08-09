@@ -118,10 +118,7 @@ namespace ReclamosMDP.API.Services
             return detalle;
         }
 
-        public async Task<List<ObraImportDto>> ObtenerObrasPeriodo(
-    DateTime desde,
-    DateTime hasta
-)
+        public async Task<List<ObraImportDto>> ObtenerObrasPeriodo(DateTime desde, DateTime hasta)
         {
             var cacheKey =
                 $"obras-periodo-{desde:yyyy-MM}-{hasta:yyyy-MM}";
@@ -344,8 +341,34 @@ namespace ReclamosMDP.API.Services
                 .ToList();
         }
 
-        public async Task<ObraDetalleDto> ObtenerDetalleObra(int eventoId)
+
+        public async Task<ObraDetalleDto> ObtenerDetalleObra( int eventoId)
         {
+            // ==========================================
+            // CACHE
+            // ==========================================
+
+            var cacheKey =
+                $"obra-detalle-{eventoId}";
+
+
+            if (
+                _cache.TryGetValue(
+                    cacheKey,
+                    out ObraDetalleDto? obraCache
+                )
+                &&
+                obraCache != null
+            )
+            {
+                return obraCache;
+            }
+
+
+            // ==========================================
+            // DETALLE BASE
+            // ==========================================
+
             var detalle =
                 await ObtenerDetalleObraBase(
                     eventoId
@@ -363,6 +386,15 @@ namespace ReclamosMDP.API.Services
 
 
             // ==========================================
+            // TEXTOS PARA ANALIZAR
+            // ==========================================
+
+            string textoPrincipal = "";
+
+            string textoParaTramos = "";
+
+
+            // ==========================================
             // DOCUMENTO PRINCIPAL
             // ==========================================
 
@@ -374,11 +406,18 @@ namespace ReclamosMDP.API.Services
 
             if (documentoPrincipal != null)
             {
-                var textoPrincipal =
+                textoPrincipal =
                     await ObtenerTextoPdf(
                         documentoPrincipal.Url,
                         eventoId
                     );
+
+
+                // Guardamos también este texto
+                // para buscar tramos más adelante.
+
+                textoParaTramos +=
+                    textoPrincipal;
 
 
                 var nombrePdf =
@@ -387,7 +426,11 @@ namespace ReclamosMDP.API.Services
                     );
 
 
-                if (!string.IsNullOrWhiteSpace(nombrePdf))
+                if (
+                    !string.IsNullOrWhiteSpace(
+                        nombrePdf
+                    )
+                )
                 {
                     detalle.Nombre =
                         nombrePdf;
@@ -423,10 +466,12 @@ namespace ReclamosMDP.API.Services
                         textoPrincipal
                     );
 
+
                 detalle.Ubicaciones =
                     ExtraerUbicacionesPuntuales(
                         textoPrincipal
                     );
+
 
                 if (
                     detalle.Ubicaciones.Count > 0
@@ -452,6 +497,11 @@ namespace ReclamosMDP.API.Services
                                 "ACTA DE APERTURA",
                                 StringComparison.OrdinalIgnoreCase
                             )
+                            ||
+                            d.Nombre.Contains(
+                                "ACTA APERTURA",
+                                StringComparison.OrdinalIgnoreCase
+                            )
                     );
 
 
@@ -464,7 +514,9 @@ namespace ReclamosMDP.API.Services
                     );
 
 
-                if (detalle.FechaApertura == null)
+                if (
+                    detalle.FechaApertura == null
+                )
                 {
                     detalle.FechaApertura =
                         ExtraerFechaApertura(
@@ -564,6 +616,19 @@ namespace ReclamosMDP.API.Services
                     );
 
 
+                // IMPORTANTE:
+                // sumamos también las especificaciones
+                // para encontrar tramos como:
+                //
+                // Brown entre X e Y
+                // Gandhi entre X e Y
+                // etc.
+
+                textoParaTramos +=
+                    "\n" +
+                    textoEspecificaciones;
+
+
                 detalle.UbicacionTexto =
                     ExtraerUbicacionEspecificaciones(
                         textoEspecificaciones
@@ -590,6 +655,42 @@ namespace ReclamosMDP.API.Services
 
 
             // ==========================================
+            // EXTRAER TRAMOS
+            // ==========================================
+
+            detalle.Tramos =
+                ExtraerTramos(
+                    textoParaTramos
+                );
+
+            if (detalle.Tramos.Count > 0)
+            {
+                await GeocodificarTramos(
+                    detalle.Tramos
+                );
+            }
+
+
+            // Si encontramos tramos,
+            // la geometría ya no es simplemente "Zona".
+
+            if (
+                detalle.Tramos.Count == 1
+            )
+            {
+                detalle.TipoGeometria =
+                    "Tramo";
+            }
+            else if (
+                detalle.Tramos.Count > 1
+            )
+            {
+                detalle.TipoGeometria =
+                    "MultiTramo";
+            }
+
+
+            // ==========================================
             // FALLBACK DE UBICACIÓN PARA PLIEGOS MGP
             // ==========================================
 
@@ -598,16 +699,11 @@ namespace ReclamosMDP.API.Services
                     detalle.UbicacionTexto
                 )
                 &&
-                documentoPrincipal != null
+                !string.IsNullOrWhiteSpace(
+                    textoPrincipal
+                )
             )
             {
-                var textoPrincipal =
-                    await ObtenerTextoPdf(
-                        documentoPrincipal.Url,
-                        eventoId
-                    );
-
-
                 detalle.UbicacionTexto =
                     ExtraerUbicacionEspecificaciones(
                         textoPrincipal
@@ -618,6 +714,8 @@ namespace ReclamosMDP.API.Services
                     !string.IsNullOrWhiteSpace(
                         detalle.UbicacionTexto
                     )
+                    &&
+                    detalle.Tramos.Count == 0
                 )
                 {
                     detalle.TipoGeometria =
@@ -628,28 +726,220 @@ namespace ReclamosMDP.API.Services
             }
 
 
-            var cacheKey =
-             $"obra-detalle-{eventoId}";
+            // ==========================================
+            // GUARDAR CACHE
+            // ==========================================
 
-
-            if (
-                _cache.TryGetValue(
-                    cacheKey,
-                    out ObraDetalleDto? obraCache
-                )
-                &&
-                obraCache != null
-            )
-            {
-                return obraCache;
-            }
             _cache.Set(
                 cacheKey,
                 detalle,
                 TimeSpan.FromHours(12)
             );
 
+
             return detalle;
+        }
+
+        private async Task GeocodificarTramos(
+     List<TramoObraDto> tramos
+ )
+        {
+            foreach (var tramo in tramos)
+            {
+                var inicio =
+                    await BuscarInterseccion(
+                        tramo.Calle,
+                        tramo.Desde
+                    );
+
+
+                if (inicio.HasValue)
+                {
+                    tramo.LatitudInicio =
+                        inicio.Value.lat;
+
+                    tramo.LongitudInicio =
+                        inicio.Value.lon;
+                }
+
+
+                var fin =
+                    await BuscarInterseccion(
+                        tramo.Calle,
+                        tramo.Hasta
+                    );
+
+
+                if (fin.HasValue)
+                {
+                    tramo.LatitudFin =
+                        fin.Value.lat;
+
+                    tramo.LongitudFin =
+                        fin.Value.lon;
+                }
+            }
+        }
+
+        private static string NormalizarNombreCalle( string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                return "";
+            }
+
+
+            var resultado =
+                nombre
+                    .Trim()
+                    .TrimEnd('.');
+
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"^(calle|avenida|av\.?)\s+",
+                    "",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"\s+",
+                    " "
+                );
+
+
+            return resultado.Trim();
+        }
+
+        private async Task<(double lat, double lon)?> BuscarInterseccion(string calle, string esquina)
+        {
+            var intentos =
+                new[]
+                {
+            $"{calle} y {esquina}",
+            $"{calle} esquina {esquina}",
+            $"{calle} & {esquina}"
+                };
+            calle =
+                NormalizarNombreCalle(
+                    calle
+                );
+
+            esquina =
+                NormalizarNombreCalle(
+                    esquina
+                );
+
+            foreach (var intento in intentos)
+            {
+                var resultado =
+                    await _geocodingService
+                        .ObtenerCoordenadas(
+                            intento
+                        );
+
+
+                if (
+                    resultado.HasValue
+                    &&
+                    CoordenadaEsDeMarDelPlata(
+                        resultado.Value.lat,
+                        resultado.Value.lon
+                    )
+                )
+                {
+                    return resultado;
+                }
+
+
+                await Task.Delay(1100);
+            }
+
+
+            return null;
+        }
+
+        public async Task<List<ObraDetalleDto>> ObtenerObrasPorAnio(int anio)
+        {
+            var cacheKey =
+                $"obras-detalle-anio-{anio}";
+
+
+            if (
+                _cache.TryGetValue(
+                    cacheKey,
+                    out List<ObraDetalleDto>? cache
+                )
+                &&
+                cache != null
+            )
+            {
+                return cache;
+            }
+
+
+            var desde =
+                new DateTime(
+                    anio,
+                    1,
+                    1
+                );
+
+
+            var hasta =
+                new DateTime(
+                    anio,
+                    12,
+                    1
+                );
+
+
+            var obras =
+                await ObtenerObrasPeriodo(
+                    desde,
+                    hasta
+                );
+
+
+            var resultado =
+                new List<ObraDetalleDto>();
+
+
+            foreach (var obra in obras)
+            {
+                try
+                {
+                    var detalle =
+                        await ObtenerDetalleObra(
+                            obra.EventoId
+                        );
+
+
+                    resultado.Add(
+                        detalle
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"ERROR DETALLE OBRA {obra.EventoId}: {ex.Message}"
+                    );
+                }
+            }
+
+
+            _cache.Set(
+                cacheKey,
+                resultado,
+                TimeSpan.FromHours(12)
+            );
+
+
+            return resultado;
         }
 
         private static string DetectarEstado( List<DocumentoObraDto> documentos)
@@ -749,6 +1039,42 @@ namespace ReclamosMDP.API.Services
             }
         }
 
+        private static string ObtenerClaveTramo(TramoObraDto tramo)
+        {
+            var calle =
+                tramo.Calle
+                    .Trim()
+                    .ToLowerInvariant();
+
+
+            var desde =
+                tramo.Desde
+                    .Trim()
+                    .ToLowerInvariant();
+
+
+            var hasta =
+                tramo.Hasta
+                    .Trim()
+                    .ToLowerInvariant();
+
+
+            var extremos =
+                new[]
+                {
+            desde,
+            hasta
+                }
+                .OrderBy(
+                    x => x
+                )
+                .ToArray();
+
+
+            return
+                $"{calle}|{extremos[0]}|{extremos[1]}";
+        }
+
         private static bool CoordenadaEsDeMarDelPlata(double lat, double lon)
         {
             return
@@ -789,6 +1115,7 @@ namespace ReclamosMDP.API.Services
 
             return direccion;
         }
+      
         private static string ExtraerNombreObra(string texto)
         {
             var match =
@@ -808,7 +1135,7 @@ namespace ReclamosMDP.API.Services
                 match.Groups[1].Value
             );
         }
-
+        
         private static string DetectarTipoGeometria(string ubicacion)
         {
             if (string.IsNullOrWhiteSpace(ubicacion))
@@ -909,7 +1236,17 @@ namespace ReclamosMDP.API.Services
                 "enterratorio",
                 "enterramiento",
                 "excavación mecanizada de pozos",
-                "excavacion mecanizada de pozos"
+                "excavacion mecanizada de pozos",
+
+                    "adq ",
+                    "adq.",
+                    "compra",
+                    "provision",
+                    "provisión",
+                    "materiales de construccion",
+                    "materiales de construcción",
+                    "articulos de construccion",
+                    "artículos de construcción"
             };
 
             if (excluir.Any(palabra => texto.Contains(palabra)))
@@ -958,6 +1295,9 @@ namespace ReclamosMDP.API.Services
             return incluir.Any(
                 palabra => texto.Contains(palabra)
             );
+
+
+
         }
 
         private async Task<string> ObtenerTextoPdf(string urlPdf, int eventoId)
@@ -1251,6 +1591,263 @@ namespace ReclamosMDP.API.Services
             return documentos;
         }
 
+        private static List<TramoObraDto> ExtraerTramos(
+     string texto
+ )
+        {
+            var tramos =
+                new List<TramoObraDto>();
+
+
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return tramos;
+            }
+
+
+            // ==========================================
+            // PATRÓN 1
+            // "Calle Gandhi entre Arroyo La Tapera
+            //  y Calle Beltrán"
+            //
+            // "Funes entre Roca y San Lorenzo"
+            //
+            // "en el tramo de calle Funes entre..."
+            // ==========================================
+
+            var patronCalle =
+                @"(?:en\s+el\s+tramo\s+de\s+)?" +
+                @"(?:calle\s+)?" +
+                @"(?<calle>[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9\.\s]{1,45}?)" +
+                @"\s+entre\s+" +
+                @"(?<desde>[A-ZÁÉÍÓÚÑ0-9\.\s]{1,40}?)" +
+                @"\s+y\s+" +
+                @"(?:calle\s+)?" +
+                @"(?<hasta>[A-ZÁÉÍÓÚÑ0-9\.\s]{1,40}?)" +
+                @"(?=;|\.|\n|$|•)";
+
+
+            AgregarTramosDesdeRegex(
+                texto,
+                patronCalle,
+                tramos
+            );
+
+
+            // ==========================================
+            // PATRÓN 2
+            //
+            // "Eje Brown: entre H. Irigoyen
+            //  y 20 de Septiembre"
+            // ==========================================
+
+            var patronEje =
+                @"(?:eje)\s+" +
+                @"(?<calle>[A-ZÁÉÍÓÚÑ0-9\.\s]{1,40}?)" +
+                @"\s*:\s*" +
+                @"entre\s+" +
+                @"(?<desde>[A-ZÁÉÍÓÚÑ0-9\.\s]{1,40}?)" +
+                @"\s+y\s+" +
+                @"(?<hasta>[A-ZÁÉÍÓÚÑ0-9\.\s]{1,40}?)" +
+                @"(?=;|\.|\n|$|•)";
+
+
+            AgregarTramosDesdeRegex(
+                texto,
+                patronEje,
+                tramos
+            );
+
+
+            // ==========================================
+            // ELIMINAR DUPLICADOS
+            // ==========================================
+
+            return tramos
+             .GroupBy(
+                 ObtenerClaveTramo,
+                 StringComparer.OrdinalIgnoreCase
+             )
+             .Select(
+                 grupo =>
+                     grupo.First()
+             )
+             .ToList();
+        }
+
+        private static void AgregarTramosDesdeRegex(
+    string texto,
+    string patron,
+    List<TramoObraDto> tramos
+)
+        {
+            var matches =
+                Regex.Matches(
+                    texto,
+                    patron,
+                    RegexOptions.IgnoreCase
+                    |
+                    RegexOptions.Multiline
+                );
+
+
+            foreach (Match match in matches)
+            {
+                var calle =
+                    LimpiarTextoTramo(
+                        match.Groups["calle"].Value
+                    );
+
+
+                var desde =
+                    LimpiarTextoTramo(
+                        match.Groups["desde"].Value
+                    );
+
+
+                var hasta =
+                    LimpiarTextoTramo(
+                        match.Groups["hasta"].Value
+                    );
+
+
+                if (
+                    !TramoPareceValido(
+                        calle,
+                        desde,
+                        hasta
+                    )
+                )
+                {
+                    continue;
+                }
+
+
+                tramos.Add(
+                    new TramoObraDto
+                    {
+                        Calle =
+                            calle,
+
+                        Desde =
+                            desde,
+
+                        Hasta =
+                            hasta,
+
+                        Descripcion =
+                            $"{calle} entre {desde} y {hasta}"
+                    }
+                );
+            }
+        }
+
+        private static bool TramoPareceValido(
+    string calle,
+    string desde,
+    string hasta
+)
+        {
+            if (
+                string.IsNullOrWhiteSpace(calle)
+                ||
+                string.IsNullOrWhiteSpace(desde)
+                ||
+                string.IsNullOrWhiteSpace(hasta)
+            )
+            {
+                return false;
+            }
+
+
+            // Evitamos párrafos completos.
+            if (
+                calle.Length > 50
+                ||
+                desde.Length > 45
+                ||
+                hasta.Length > 45
+            )
+            {
+                return false;
+            }
+
+
+            var texto =
+                $"{calle} {desde} {hasta}"
+                    .ToLowerInvariant();
+
+
+            // Palabras que indican que NO estamos
+            // hablando de calles/tramos urbanos.
+            var palabrasInvalidas =
+                new[]
+                {
+            "porcentaje",
+            "pavimento de hormigón a construir",
+            "material",
+            "resistencia",
+            "espesor",
+            "pintura",
+            "reflector",
+            "tacha",
+            "delineador",
+            "mortero",
+            "polietileno",
+            "sustrato",
+            "bicicletas y los autos",
+            "línea visual",
+            "linea visual",
+            "rayo incidente",
+            "índice de plasticidad",
+            "indice de plasticidad",
+            "base deberán",
+            "base deberan",
+            "dicha ciclovía",
+            "dicha ciclovia",
+            "bastón",
+            "baston",
+            "el cordón",
+            "el cordon",
+            "éste",
+            "este y la calzada"
+                };
+
+
+            if (
+                palabrasInvalidas.Any(
+                    palabra =>
+                        texto.Contains(
+                            palabra
+                        )
+                )
+            )
+            {
+                return false;
+            }
+
+
+            // Si los extremos son solamente números
+            // tipo "entre 2 y 10", tampoco es un tramo.
+            if (
+                double.TryParse(
+                    desde,
+                    out _
+                )
+                &&
+                double.TryParse(
+                    hasta,
+                    out _
+                )
+            )
+            {
+                return false;
+            }
+
+
+            return true;
+        }
+
         private static decimal? ExtraerPresupuestoOficial(string texto)
         {
             var match = Regex.Match(
@@ -1423,6 +2020,81 @@ namespace ReclamosMDP.API.Services
             return "";
         }
 
+        private static string LimpiarTextoTramo(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return "";
+            }
+
+
+            var resultado =
+                texto
+                    .Trim()
+                    .Trim(
+                        '.',
+                        ';',
+                        ':',
+                        '-',
+                        '•'
+                    );
+
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"\s+",
+                    " "
+                );
+
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"^(calle|av\.?|avenida)\s+",
+                    "",
+                    RegexOptions.IgnoreCase
+                );
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"^(calle\s+)",
+                    "",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            resultado =
+                Regex.Replace(
+                    resultado,
+                    @"^(eje\s+)",
+                    "",
+                    RegexOptions.IgnoreCase
+                );
+
+
+            // Si el texto contiene "calle",
+            // nos quedamos con lo que viene después
+            // de la última aparición de "calle".
+
+            var indiceCalle =
+                resultado.LastIndexOf(
+                    "calle ",
+                    StringComparison.OrdinalIgnoreCase
+                );
+
+            if (indiceCalle >= 0)
+            {
+                resultado =
+                    resultado[
+                        (indiceCalle + 6)..
+                    ];
+            }
+
+
+            return resultado.Trim();
+        }
 
         private static DateTime? ExtraerFechaApertura(string texto)
         {

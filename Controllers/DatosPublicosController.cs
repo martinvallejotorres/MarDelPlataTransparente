@@ -508,6 +508,37 @@ namespace ReclamosMDP.API.Controllers
             }
         }
 
+        [HttpGet("obras/anio/{anio:int}")]
+        public async Task<IActionResult> ObtenerObrasPorAnio(int anio)
+        {
+            if (
+                anio < 2000
+                ||
+                anio > DateTime.UtcNow.Year
+            )
+            {
+                return BadRequest(
+                    "El año indicado no es válido."
+                );
+            }
+
+
+            var obras =
+                await _obrasImportService
+                    .ObtenerObrasPorAnio(
+                        anio
+                    );
+
+
+            return Ok(
+                new
+                {
+                    anio,
+                    cantidad = obras.Count,
+                    obras
+                }
+            );
+        }
     }
 
 
