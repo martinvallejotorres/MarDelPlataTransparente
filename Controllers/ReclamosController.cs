@@ -8,6 +8,7 @@ using System.Security.Claims;
 using ReclamosMDP.API.DTOs;
 using Microsoft.AspNetCore.Hosting;
 using System.Globalization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ReclamosMDP.API.Controllers
 {
@@ -50,6 +51,34 @@ namespace ReclamosMDP.API.Controllers
         "image/webp"
             };
 
+        private static bool CoordenadaEsDelPartido(double latitud, double longitud) =>
+            latitud is >= -38.20 and <= -37.70 &&
+            longitud is >= -57.85 and <= -57.30;
+
+        private static async Task<bool> EsContenidoImagenValido(IFormFile foto)
+        {
+            var cabecera = new byte[12];
+            await using var stream = foto.OpenReadStream();
+            var leidos = await stream.ReadAsync(cabecera.AsMemory(0, cabecera.Length));
+
+            var jpeg = leidos >= 3 &&
+                       cabecera[0] == 0xFF && cabecera[1] == 0xD8 && cabecera[2] == 0xFF;
+            var png = leidos >= 8 &&
+                      cabecera.AsSpan(0, 8).SequenceEqual(
+                          new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+            var webp = leidos >= 12 &&
+                       System.Text.Encoding.ASCII.GetString(cabecera, 0, 4) == "RIFF" &&
+                       System.Text.Encoding.ASCII.GetString(cabecera, 8, 4) == "WEBP";
+
+            return Path.GetExtension(foto.FileName).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => jpeg,
+                ".png" => png,
+                ".webp" => webp,
+                _ => false
+            };
+        }
+
 
 
         public ReclamosController(
@@ -68,6 +97,42 @@ namespace ReclamosMDP.API.Controllers
 
 
         // GET api/reclamos
+        [AllowAnonymous]
+        [HttpGet("fotos/{nombreArchivo}")]
+        public IActionResult ObtenerFoto(string nombreArchivo)
+        {
+            var extension = Path.GetExtension(nombreArchivo);
+            var nombreSinExtension = Path.GetFileNameWithoutExtension(nombreArchivo);
+
+            if (!Guid.TryParseExact(nombreSinExtension, "D", out _) ||
+                !ExtensionesImagenPermitidas.Contains(extension))
+            {
+                return NotFound();
+            }
+
+            var ruta = Path.Combine(
+                _environment.ContentRootPath,
+                "App_Data",
+                "uploads",
+                "reclamos",
+                nombreArchivo);
+
+            if (!System.IO.File.Exists(ruta))
+            {
+                return NotFound();
+            }
+
+            var tipoContenido = extension.ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(ruta, tipoContenido);
+        }
+
         [HttpGet]
         public async Task<IActionResult> Get()
         {
@@ -327,6 +392,7 @@ namespace ReclamosMDP.API.Controllers
 
         // GET api/reclamos/reverse-geocode?latitud=...&longitud=...
         [AllowAnonymous]
+        [EnableRateLimiting("datos-externos")]
         [HttpGet("reverse-geocode")]
         public async Task<IActionResult> ReverseGeocode([FromQuery] string latitud, [FromQuery] string longitud)
         {
@@ -354,10 +420,7 @@ namespace ReclamosMDP.API.Controllers
 
 
             if (
-                lat < -90 ||
-                lat > 90 ||
-                lon < -180 ||
-                lon > 180
+                !CoordenadaEsDelPartido(lat, lon)
             )
             {
                 return BadRequest(new
@@ -398,6 +461,20 @@ namespace ReclamosMDP.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromForm] CrearReclamoDto dto)
         {
+            dto.Titulo = dto.Titulo.Trim();
+            dto.Descripcion = dto.Descripcion.Trim();
+            dto.Tipo = dto.Tipo.Trim();
+            dto.Direccion = dto.Direccion?.Trim();
+
+            if (dto.Titulo.Length is < 5 or > 100 ||
+                dto.Descripcion.Length is < 10 or > 1000)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El título o la descripción no tienen una longitud válida."
+                });
+            }
+
             var usuarioId = User.FindFirst(
                 ClaimTypes.NameIdentifier
             )?.Value;
@@ -442,7 +519,8 @@ namespace ReclamosMDP.API.Controllers
 
 
                 if (!ExtensionesImagenPermitidas.Contains(extension) ||
-                    !TiposImagenPermitidos.Contains(dto.Foto.ContentType))
+                    !TiposImagenPermitidos.Contains(dto.Foto.ContentType) ||
+                    !await EsContenidoImagenValido(dto.Foto))
                 {
                     return BadRequest(new
                     {
@@ -517,10 +595,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 if (
-                    latitud < -90 ||
-                    latitud > 90 ||
-                    longitud < -180 ||
-                    longitud > 180
+                    !CoordenadaEsDelPartido(latitud, longitud)
                 )
                 {
                     return BadRequest(new
@@ -571,6 +646,14 @@ namespace ReclamosMDP.API.Controllers
                 latitud = coordenadas.Value.lat;
                 longitud = coordenadas.Value.lon;
 
+                if (!CoordenadaEsDelPartido(latitud, longitud))
+                {
+                    return BadRequest(new
+                    {
+                        mensaje = "La dirección debe estar dentro del Partido de General Pueyrredon."
+                    });
+                }
+
                 direccionFinal =
                     dto.Direccion.Trim();
             }
@@ -597,7 +680,8 @@ namespace ReclamosMDP.API.Controllers
             if (dto.Foto != null && dto.Foto.Length > 0)
             {
                 var carpeta = Path.Combine(
-                    _environment.WebRootPath,
+                    _environment.ContentRootPath,
+                    "App_Data",
                     "uploads",
                     "reclamos"
                 );
@@ -633,7 +717,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 fotoUrl =
-                    $"/uploads/reclamos/{nombreArchivo}";
+                    $"/api/reclamos/fotos/{nombreArchivo}";
             }
 
 
@@ -720,7 +804,17 @@ namespace ReclamosMDP.API.Controllers
 
             _context.Apoyos.Add(apoyo);
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict(new
+                {
+                    mensaje = "Ya apoyaste este reclamo."
+                });
+            }
 
             var cantidadApoyos = await _context.Apoyos
                 .CountAsync(a => a.ReclamoId == id);

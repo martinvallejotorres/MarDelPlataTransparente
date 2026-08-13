@@ -55,6 +55,14 @@ function crearMarcadores(reclamos) {
 
     reclamos.forEach(reclamo => {
 
+        if (!Number.isFinite(reclamo.latitud) ||
+            !Number.isFinite(reclamo.longitud) ||
+            reclamo.latitud < -38.20 || reclamo.latitud > -37.70 ||
+            reclamo.longitud < -57.85 || reclamo.longitud > -57.30) {
+            console.warn("Reclamo omitido por coordenadas inválidas:", reclamo.id);
+            return;
+        }
+
         const marker = L.marker(
             [
                 reclamo.latitud,
@@ -183,17 +191,17 @@ async function cargarPulsoCiudad() {
                 <div class="urgente-contenido">
 
                     <div class="urgente-titulo">
-                        ${r.titulo}
+                        ${escaparHtml(r.titulo)}
                     </div>
 
                     <div class="urgente-detalle">
 
                         <span class="urgente-categoria">
-                            ${r.tipo}
+                            ${escaparHtml(r.tipo)}
                         </span>
 
                         <span class="urgente-zona">
-                            ${r.zona ?? "Sin zona"}
+                            ${escaparHtml(r.zona ?? "Sin zona")}
                         </span>
 
                     </div>

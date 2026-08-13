@@ -181,7 +181,7 @@ function crearRankingBarrios(barrios) {
                         </span>
 
                         <strong>
-                            ${barrio.barrio}
+                            ${escaparHtml(barrio.barrio)}
                         </strong>
 
                     </div>
@@ -231,10 +231,11 @@ function crearReclamosMasApoyados(reclamos) {
 
     reclamos.forEach(reclamo => {
 
-        const imagen = reclamo.fotoUrl
+        const fotoUrl = urlLocalSegura(reclamo.fotoUrl);
+        const imagen = fotoUrl
             ? `
                 <img
-                    src="${reclamo.fotoUrl}"
+                    src="${escaparHtml(fotoUrl)}"
                     class="card-img-top"
                     alt="Imagen del reclamo">
               `
@@ -245,25 +246,25 @@ function crearReclamosMasApoyados(reclamos) {
             <div class="col-lg-4 col-md-6">
 
                 <div class="card h-100 shadow-sm reclamo-destacado"
-                     onclick="irAReclamo(${reclamo.id})">
+                     data-reclamo-id="${Number(reclamo.id)}">
 
                     ${imagen}
 
                     <div class="card-body">
 
                         <span class="badge text-bg-light mb-2">
-                            ${reclamo.tipo}
+                            ${escaparHtml(reclamo.tipo)}
                         </span>
 
                         <h5 class="fw-bold">
-                            ${reclamo.titulo || "Sin título"}
+                            ${escaparHtml(reclamo.titulo || "Sin título")}
                         </h5>
 
                         <div class="text-muted mb-3">
 
                             <i class="fa-solid fa-location-dot me-1"></i>
 
-                            ${reclamo.zona ?? "Sin zona"}
+                            ${escaparHtml(reclamo.zona ?? "Sin zona")}
 
                         </div>
 
@@ -285,6 +286,11 @@ function crearReclamosMasApoyados(reclamos) {
             </div>
         `;
 
+    });
+
+    contenedor.querySelectorAll("[data-reclamo-id]").forEach(tarjeta => {
+        tarjeta.addEventListener("click", () =>
+            irAReclamo(Number(tarjeta.dataset.reclamoId)));
     });
 
 }

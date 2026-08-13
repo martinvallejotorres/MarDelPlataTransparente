@@ -39,13 +39,13 @@
 
                             <h5>
 
-                                ${r.titulo}
+                                ${escaparHtml(r.titulo)}
 
                             </h5>
 
                             <p class="text-muted">
 
-                                📍 ${r.zona}
+                                📍 ${escaparHtml(r.zona)}
 
                             </p>
 
@@ -55,7 +55,7 @@
 
                                 <strong>
 
-                                    ${r.estado}
+                                    ${escaparHtml(r.estado)}
 
                                 </strong>
 

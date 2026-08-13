@@ -33,10 +33,12 @@ function abrirDetalle(reclamo) {
             ".detalle-imagen-contenedor"
         );
 
-    if (reclamo.fotoUrl) {
+    const fotoUrl = urlLocalSegura(reclamo.fotoUrl);
+
+    if (fotoUrl) {
 
         imagen.src =
-            reclamo.fotoUrl;
+            fotoUrl;
 
         contenedorImagen.style.display =
             "block";
@@ -51,8 +53,14 @@ function abrirDetalle(reclamo) {
 
     }
 
-    document.getElementById("detalleUbicacion").innerHTML =
-        `<i class="fa-solid fa-location-dot me-2"></i>${reclamo.direccion}`;
+    const detalleUbicacion = document.getElementById("detalleUbicacion");
+    detalleUbicacion.replaceChildren();
+    const iconoUbicacion = document.createElement("i");
+    iconoUbicacion.className = "fa-solid fa-location-dot me-2";
+    detalleUbicacion.append(
+        iconoUbicacion,
+        document.createTextNode(reclamo.direccion ?? "")
+    );
 
     document.getElementById("detalleDescripcion").textContent =
         reclamo.descripcion;
@@ -239,10 +247,7 @@ async function apoyarReclamo() {
 
     if (!reclamoActual) return;
 
-    const token =
-        localStorage.getItem("token");
-
-    if (!token) {
+    if (!obtenerUsuario()) {
 
         sessionStorage.setItem(
             "reclamoPendienteApoyo",

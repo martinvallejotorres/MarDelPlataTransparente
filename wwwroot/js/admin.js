@@ -89,13 +89,13 @@ async function cargarReclamos() {
 
                                 <h5>
 
-                                    ${reclamo.titulo || "(Sin título)"}
+                                    ${escaparHtml(reclamo.titulo || "(Sin título)")}
 
                                 </h5>
 
                                 <span class="badge estado-badge ${obtenerBadgeEstado(reclamo.estado)}">
 
-                                    ${reclamo.estado}
+                                    ${escaparHtml(reclamo.estado)}
 
                                 </span>
 
@@ -105,7 +105,7 @@ async function cargarReclamos() {
 
                                 <i class="fa-solid fa-location-dot me-2"></i>
 
-                                ${reclamo.zona ?? "Sin zona"}
+                                ${escaparHtml(reclamo.zona ?? "Sin zona")}
 
                             </div>
 
@@ -113,7 +113,7 @@ async function cargarReclamos() {
 
                                 <i class="fa-solid fa-tag me-2"></i>
 
-                                ${reclamo.tipo}
+                                ${escaparHtml(reclamo.tipo)}
 
                             </div>
 
@@ -129,7 +129,7 @@ async function cargarReclamos() {
 
                                     class="btn btn-primary"
 
-                                    onclick="verDetalle(${reclamo.id})">
+                                    data-reclamo-id="${Number(reclamo.id)}">
 
                                     Gestionar
 
@@ -145,6 +145,11 @@ async function cargarReclamos() {
 
             `;
 
+        });
+
+        lista.querySelectorAll("[data-reclamo-id]").forEach(boton => {
+            boton.addEventListener("click", () =>
+                verDetalle(Number(boton.dataset.reclamoId)));
         });
 
     }
@@ -208,8 +213,8 @@ async function verDetalle(id) {
 
             detalle.creadoPor
                 ? `
-                <strong>${detalle.creadoPor.nombre}</strong><br>
-                ${detalle.creadoPor.email}
+                <strong>${escaparHtml(detalle.creadoPor.nombre)}</strong><br>
+                ${escaparHtml(detalle.creadoPor.email)}
               `
                 : "Sin información";
 
@@ -218,8 +223,8 @@ async function verDetalle(id) {
 
             detalle.asignadoA
                 ? `
-                <strong>${detalle.asignadoA.nombre}</strong><br>
-                ${detalle.asignadoA.email}
+                <strong>${escaparHtml(detalle.asignadoA.nombre)}</strong><br>
+                ${escaparHtml(detalle.asignadoA.email)}
               `
                 : "Sin asignar";
 
@@ -237,7 +242,7 @@ async function verDetalle(id) {
 
                     <strong>
 
-                        ${item.estadoAnterior}
+                        ${escaparHtml(item.estadoAnterior)}
 
                     </strong>
 
@@ -245,7 +250,7 @@ async function verDetalle(id) {
 
                     <strong>
 
-                        ${item.estadoNuevo}
+                        ${escaparHtml(item.estadoNuevo)}
 
                     </strong>
 
@@ -253,7 +258,7 @@ async function verDetalle(id) {
 
                     <small>
 
-                        ${item.usuario}
+                        ${escaparHtml(item.usuario)}
 
                     </small>
 

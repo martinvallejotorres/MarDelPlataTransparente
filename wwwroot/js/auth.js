@@ -4,10 +4,8 @@
 
 function guardarSesion(data) {
 
-    localStorage.setItem(
-        "token",
-        data.token
-    );
+    // El JWT vive en una cookie HttpOnly y nunca queda expuesto a JavaScript.
+    localStorage.removeItem("token");
 
     localStorage.setItem(
         "usuario",
@@ -27,10 +25,20 @@ function obtenerUsuario() {
 }
 
 
-function cerrarSesion() {
+async function cerrarSesion(event) {
+
+    event?.preventDefault();
+
+    try {
+        await apiFetch("/auth/logout", { method: "POST" });
+    }
+    catch (error) {
+        console.warn("No se pudo confirmar el cierre de sesión:", error);
+    }
 
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
+    localStorage.removeItem("perfil");
 
     location.reload();
 }
@@ -46,12 +54,23 @@ async function obtenerPerfil() {
             JSON.stringify(perfil)
         );
 
+        localStorage.setItem(
+            "usuario",
+            JSON.stringify({
+                id: perfil.id,
+                nombre: perfil.nombre,
+                email: perfil.email,
+                roles: perfil.roles
+            })
+        );
+
         return perfil;
 
     }
     catch {
 
         localStorage.removeItem("perfil");
+        localStorage.removeItem("usuario");
 
         return null;
     }
@@ -212,7 +231,7 @@ function actualizarNavbar() {
 
     boton.innerHTML = `
         <i class="fa-solid fa-user me-2"></i>
-        ${usuario.nombre}
+        ${escaparHtml(usuario.nombre)}
     `;
 
     boton.setAttribute("data-bs-toggle", "dropdown");
@@ -432,9 +451,8 @@ async function registrar() {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-    if (obtenerUsuario()) {
-        await obtenerPerfil();
-    }
+    // Recupera una sesión HttpOnly vigente incluso después de limpiar storage.
+    await obtenerPerfil();
 
     actualizarNavbar();
 

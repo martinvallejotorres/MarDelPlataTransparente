@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReclamosMDP.API.Data;
@@ -11,9 +12,11 @@ using ReclamosMDP.API.Data;
 namespace ReclamosMDP.API.Migrations
 {
     [DbContext(typeof(ReclamosDbContext))]
-    partial class ReclamosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260812023657_PersistirObrasPublicas")]
+    partial class PersistirObrasPublicas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -375,7 +378,8 @@ namespace ReclamosMDP.API.Migrations
 
                     b.Property<string>("UbicacionTexto")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("UbicacionesJson")
                         .IsRequired()

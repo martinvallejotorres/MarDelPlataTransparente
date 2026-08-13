@@ -76,8 +76,10 @@ async function cargarComisarias() {
         comisarias.forEach(comisaria => {
 
             if (
-                !comisaria.latitud ||
-                !comisaria.longitud
+                !Number.isFinite(comisaria.latitud) ||
+                !Number.isFinite(comisaria.longitud) ||
+                comisaria.latitud < -38.20 || comisaria.latitud > -37.70 ||
+                comisaria.longitud < -57.85 || comisaria.longitud > -57.30
             ) {
                 return;
             }
@@ -104,11 +106,11 @@ async function cargarComisarias() {
                     <div class="comisaria-tooltip">
 
                         <strong>
-                            ${comisaria.nombre}
+                            ${escaparHtml(comisaria.nombre)}
                         </strong>
 
                         <span>
-                            ${comisaria.direccion}
+                            ${escaparHtml(comisaria.direccion)}
                         </span>
 
                     </div>
@@ -151,6 +153,12 @@ async function cargarComisarias() {
         console.error(
             "Error cargando comisarías:",
             error
+        );
+
+        mostrarToast(
+            "Comisarías no disponibles",
+            "La fuente oficial no respondió. Probá nuevamente en unos minutos.",
+            "warning"
         );
     }
 }
@@ -479,7 +487,7 @@ const ControlDatosCiudad =
                     title="Seguridad"
                 >
                     <i class="fa-solid fa-shield-halved"></i>
-                    <span>Seguridad</span>
+                    <span>Capas</span>
                 </button>
 
                 <div
@@ -532,6 +540,74 @@ const ControlDatosCiudad =
                             Obras públicas
                         </span>
 
+                    </label>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleTramosObras">
+                        <span class="control-datos-icono tramos">
+                            <i class="fa-solid fa-road"></i>
+                        </span>
+                        <span>Tramos de obras</span>
+                    </label>
+
+                    <div class="control-datos-separador">
+                        ADMINISTRACIÓN PÚBLICA
+                    </div>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleDelegacionesMunicipales">
+                        <span class="control-datos-icono administracion">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </span>
+                        <span>Delegaciones municipales</span>
+                    </label>
+
+                    <div class="control-datos-separador">
+                        MOVILIDAD
+                    </div>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleRecorridosColectivos">
+                        <span class="control-datos-icono movilidad">
+                            <i class="fa-solid fa-route"></i>
+                        </span>
+                        <span>Recorridos de colectivos</span>
+                    </label>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleParadasColectivos">
+                        <span class="control-datos-icono movilidad">
+                            <i class="fa-solid fa-bus-simple"></i>
+                        </span>
+                        <span>Paradas de colectivos</span>
+                    </label>
+
+                    <div class="control-datos-separador">
+                        MEDIO AMBIENTE
+                    </div>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleArroyosAmbiente">
+                        <span class="control-datos-icono ambiente">
+                            <i class="fa-solid fa-water"></i>
+                        </span>
+                        <span>Arroyos</span>
+                    </label>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="togglePuntosAguaAmbiente">
+                        <span class="control-datos-icono ambiente">
+                            <i class="fa-solid fa-droplet"></i>
+                        </span>
+                        <span>Puntos de muestreo de agua</span>
+                    </label>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleEstacionesAmbiente">
+                        <span class="control-datos-icono ambiente">
+                            <i class="fa-solid fa-wind"></i>
+                        </span>
+                        <span>Estaciones de aire y olores</span>
                     </label>
 
                 </div>

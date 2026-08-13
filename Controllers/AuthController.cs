@@ -28,6 +28,22 @@ namespace ReclamosMDP.API.Controllers
             _jwtService = jwtService;
         }
 
+        private void GuardarTokenEnCookie(string token)
+        {
+            Response.Cookies.Append(
+                "reclamos_auth",
+                token,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = Request.IsHttps,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(7),
+                    IsEssential = true,
+                    Path = "/"
+                });
+        }
+
 
         private static string CrearRespuestaGoogle(
      object? resultado,
@@ -40,6 +56,9 @@ namespace ReclamosMDP.API.Controllers
                 error
             });
 
+            var payloadBase64 = Convert.ToBase64String(
+                System.Text.Encoding.UTF8.GetBytes(payload));
+
                     return $@"
                     <!DOCTYPE html>
                     <html>
@@ -48,20 +67,9 @@ namespace ReclamosMDP.API.Controllers
                         <title>Autenticación</title>
                     </head>
 
-                    <body>
+                    <body data-google-auth=""{payloadBase64}"">
 
-                    <script>
-
-                        if (window.opener) {{
-                            window.opener.postMessage(
-                                {payload},
-                                window.location.origin
-                            );
-                        }}
-
-                        window.close();
-
-                    </script>
+                    <script src=""/js/google-callback.js""></script>
 
                     </body>
                     </html>";
@@ -72,6 +80,9 @@ namespace ReclamosMDP.API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto model)
         {
+            model.Email = model.Email.Trim();
+            model.Nombre = model.Nombre.Trim();
+
             var existe = await _userManager.FindByEmailAsync(model.Email);
 
             if (existe != null)
@@ -102,6 +113,7 @@ namespace ReclamosMDP.API.Controllers
 
             if (!resultadoRol.Succeeded)
             {
+                await _userManager.DeleteAsync(usuario);
                 return BadRequest(resultadoRol.Errors);
             }
 
@@ -121,6 +133,8 @@ namespace ReclamosMDP.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto model)
         {
+            model.Email = model.Email.Trim();
+
             var usuario = await _userManager.FindByEmailAsync(model.Email);
 
             if (usuario == null)
@@ -131,7 +145,7 @@ namespace ReclamosMDP.API.Controllers
             var resultado = await _signInManager.CheckPasswordSignInAsync(
                 usuario,
                 model.Password,
-                false
+                true
             );
 
             if (!resultado.Succeeded)
@@ -142,9 +156,10 @@ namespace ReclamosMDP.API.Controllers
             var token = await _jwtService.GenerarToken(usuario);
             var roles = await _userManager.GetRolesAsync(usuario);
 
+            GuardarTokenEnCookie(token);
+
             return Ok(new
             {
-                token,
                 usuario = new
                 {
                     usuario.Id,
@@ -207,9 +222,14 @@ namespace ReclamosMDP.API.Controllers
         [HttpGet("roles")]
         public async Task<IActionResult> Roles()
         {
-            var roles = await _userManager.GetRolesAsync(
-                await _userManager.GetUserAsync(User)
-            );
+            var usuario = await _userManager.GetUserAsync(User);
+
+            if (usuario == null)
+            {
+                return Unauthorized();
+            }
+
+            var roles = await _userManager.GetRolesAsync(usuario);
 
             return Ok(new
             {
@@ -335,6 +355,7 @@ namespace ReclamosMDP.API.Controllers
 
                     if (!resultadoRol.Succeeded)
                     {
+                        await _userManager.DeleteAsync(usuario);
                         return Content(
                             CrearRespuestaGoogle(
                                 null,
@@ -376,8 +397,6 @@ namespace ReclamosMDP.API.Controllers
 
             var resultadoGoogle = new
             {
-                token,
-
                 usuario = new
                 {
                     id = usuario.Id,
@@ -392,11 +411,28 @@ namespace ReclamosMDP.API.Controllers
                 IdentityConstants.ExternalScheme
             );
 
+            GuardarTokenEnCookie(token);
+
 
             return Content(
                 CrearRespuestaGoogle(resultadoGoogle, null),
                 "text/html"
             );
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete(
+                "reclamos_auth",
+                new CookieOptions
+                {
+                    Secure = Request.IsHttps,
+                    SameSite = SameSiteMode.Strict,
+                    Path = "/"
+                });
+
+            return Ok(new { mensaje = "Sesión cerrada." });
         }
 
 

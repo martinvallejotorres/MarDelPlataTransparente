@@ -3,16 +3,19 @@ using CsvHelper.Configuration;
 using ReclamosMDP.API.DTOs;
 using System.Globalization;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ReclamosMDP.API.Services
 {
     public class ComisariasService
     {
         private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
 
-        public ComisariasService(HttpClient httpClient)
+        public ComisariasService(HttpClient httpClient, IMemoryCache cache)
         {
             _httpClient = httpClient;
+            _cache = cache;
 
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "MarDelPlataTransparente/1.0"
@@ -22,6 +25,14 @@ namespace ReclamosMDP.API.Services
 
         public async Task<List<ComisariaDto>> ObtenerComisarias()
         {
+            if (_cache.TryGetValue(
+                    "comisarias-oficiales",
+                    out List<ComisariaDto>? comisariasCache) &&
+                comisariasCache != null)
+            {
+                return comisariasCache;
+            }
+
             // Por ahora vamos a colocar acá la URL directa
             // del CSV oficial de Datos Abiertos PBA.
             //
@@ -124,6 +135,13 @@ namespace ReclamosMDP.API.Services
                     continue;
                 }
 
+                if (!double.IsFinite(latitud) || !double.IsFinite(longitud) ||
+                    latitud is < -38.20 or > -37.70 ||
+                    longitud is < -57.85 or > -57.30)
+                {
+                    continue;
+                }
+
 
                 comisarias.Add(
                     new ComisariaDto
@@ -158,6 +176,11 @@ namespace ReclamosMDP.API.Services
                 );
             }
 
+
+            _cache.Set(
+                "comisarias-oficiales",
+                comisarias,
+                TimeSpan.FromHours(6));
 
             return comisarias;
         }

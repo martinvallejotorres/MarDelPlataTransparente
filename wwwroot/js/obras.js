@@ -6,12 +6,16 @@
 // ==========================================
 
 const obrasLayer = L.layerGroup();
+const tramosObrasLayer = L.layerGroup();
 
 let obrasCargadas = false;
+let tramosObrasCargados = false;
 
 let obrasDetalle = [];
+let obrasConTramosDetalle = [];
 
 let obrasCargandoPromise = null;
+let tramosObrasCargandoPromise = null;
 
 let filtroObrasActual ="todas";
 
@@ -68,11 +72,7 @@ async function cargarObras() {
 
                 const response =
                     await fetch(
-                        "/api/datos-publicos/obras/periodo/detalle" +
-                        "?anioDesde=2026" +
-                        "&mesDesde=1" +
-                        "&anioHasta=2026" +
-                        "&mesHasta=8"
+                        `/api/datos-publicos/obras/anio/${new Date().getFullYear()}`
                     );
 
 
@@ -91,16 +91,7 @@ async function cargarObras() {
                     resultado.obras || [];
 
 
-                obrasLayer.clearLayers();
-
-
-                obrasDetalle.forEach(
-                    obra => {
-                        agregarObraAlMapa(
-                            obra
-                        );
-                    }
-                );
+                renderizarObrasEnMapa();
 
 
                 obrasCargadas =
@@ -137,6 +128,31 @@ async function cargarObras() {
 
 
     return obrasCargandoPromise;
+}
+
+async function cargarTramosObras() {
+    if (tramosObrasCargados) return;
+    if (tramosObrasCargandoPromise) return tramosObrasCargandoPromise;
+
+    tramosObrasCargandoPromise = (async () => {
+        try {
+            const anioHasta = new Date().getFullYear();
+            const response = await fetch(
+                `/api/datos-publicos/obras/tramos?anioDesde=2024&anioHasta=${anioHasta}`
+            );
+            if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+
+            const resultado = await response.json();
+            obrasConTramosDetalle = resultado.obras || [];
+            renderizarTramosObrasEnMapa();
+            tramosObrasCargados = true;
+        }
+        finally {
+            tramosObrasCargandoPromise = null;
+        }
+    })();
+
+    return tramosObrasCargandoPromise;
 }
 
 function abrirPanelObras() {
@@ -460,17 +476,17 @@ function crearTarjetaObra(obra) {
 
         <article
             class="obra-card"
-            data-evento-id="${obra.eventoId}"
+            data-evento-id="${Number(obra.eventoId)}"
         >
 
             <div class="obra-card-top">
 
                 <h5>
-                    ${obra.nombre}
+                    ${escaparHtml(obra.nombre)}
                 </h5>
 
                 <span class="obra-card-estado">
-                    ${estado}
+                    ${escaparHtml(estado)}
                 </span>
 
             </div>
@@ -481,10 +497,7 @@ function crearTarjetaObra(obra) {
                 <i class="fa-solid fa-location-dot"></i>
 
                 <span>
-                    ${obra.ubicacionTexto
-        ||
-        "Ubicación no especificada"
-        }
+                    ${escaparHtml(obra.ubicacionTexto || "Ubicación no especificada")}
                 </span>
 
             </div>
@@ -499,7 +512,7 @@ function crearTarjetaObra(obra) {
                     </span>
 
                     <strong>
-                        ${presupuesto}
+                        ${escaparHtml(presupuesto)}
                     </strong>
 
                 </div>
@@ -561,9 +574,17 @@ function enfocarObra(obra) {
         (obra.ubicaciones || [])
             .filter(
                 ubicacion =>
-                    ubicacion.latitud != null &&
-                    ubicacion.longitud != null
+                    Number.isFinite(ubicacion.latitud) &&
+                    Number.isFinite(ubicacion.longitud)
             );
+
+    const puntosTramos = (obra.tramos || [])
+        .flatMap(tramo => [
+            [tramo.latitudInicio, tramo.longitudInicio],
+            [tramo.latitudFin, tramo.longitudFin]
+        ])
+        .filter(([latitud, longitud]) =>
+            Number.isFinite(latitud) && Number.isFinite(longitud));
 
 
     // ==========================================
@@ -635,6 +656,16 @@ function enfocarObra(obra) {
         return;
     }
 
+    if (puntosTramos.length > 0) {
+        activarCapaTramos();
+        map.fitBounds(L.latLngBounds(puntosTramos), {
+            padding: [60, 60],
+            maxZoom: 17
+        });
+        abrirDetalleObra(obra);
+        return;
+    }
+
 
     // ==========================================
     // OBRA SIN UBICACIÓN PRECISA
@@ -662,8 +693,8 @@ function agregarObraAlMapa(obra) {
         obra.ubicaciones &&
         obra.ubicaciones.some(
             ubicacion =>
-                ubicacion.latitud != null &&
-                ubicacion.longitud != null
+                Number.isFinite(ubicacion.latitud) &&
+                Number.isFinite(ubicacion.longitud)
         );
 
 
@@ -745,6 +776,57 @@ function agregarObraAlMapa(obra) {
 
             break;
     }
+}
+
+function renderizarObrasEnMapa() {
+    obrasLayer.clearLayers();
+    obtenerObrasFiltradas().forEach(obra => {
+        agregarObraAlMapa(obra);
+    });
+}
+
+function renderizarTramosObrasEnMapa() {
+    tramosObrasLayer.clearLayers();
+    obrasConTramosDetalle.forEach(obra => {
+        const tramos = (obra.tramos || []).filter(tramo =>
+            Number.isFinite(tramo.latitudInicio) &&
+            Number.isFinite(tramo.longitudInicio) &&
+            Number.isFinite(tramo.latitudFin) &&
+            Number.isFinite(tramo.longitudFin));
+        agregarTramosObra(obra, tramos);
+    });
+}
+
+function agregarTramosObra(obra, tramos) {
+    const color = obtenerColorObra(obra.estado);
+
+    tramos.forEach(tramo => {
+        const linea = L.polyline([
+            [tramo.latitudInicio, tramo.longitudInicio],
+            [tramo.latitudFin, tramo.longitudFin]
+        ], {
+            color,
+            weight: 6,
+            opacity: .85
+        });
+
+        linea.bindTooltip(`
+            <div class="obra-tooltip">
+                <strong>${escaparHtml(tramo.calle)}</strong>
+                <span>${escaparHtml(`${tramo.desde} — ${tramo.hasta}`)}</span>
+                <small>${escaparHtml(obra.nombre)}</small>
+                <small>${escaparHtml(String(obra.anioFuente || ""))}</small>
+            </div>
+        `, { sticky: true, direction: "top" });
+        linea.on("click", () => abrirDetalleObra(obra));
+        tramosObrasLayer.addLayer(linea);
+    });
+}
+
+function activarCapaTramos() {
+    if (!map.hasLayer(tramosObrasLayer)) tramosObrasLayer.addTo(map);
+    const toggle = document.getElementById("toggleTramosObras");
+    if (toggle) toggle.checked = true;
 }
 
 
@@ -1034,15 +1116,15 @@ function configurarInteraccionObra(capa, obra) {
             <div class="obra-tooltip">
 
                 <strong>
-                    ${obra.nombre}
+                    ${escaparHtml(obra.nombre)}
                 </strong>
 
                 <span>
-                    ${obra.ubicacionTexto || ""}
+                    ${escaparHtml(obra.ubicacionTexto || "")}
                 </span>
 
                 <small>
-                    ${presupuesto}
+                    ${escaparHtml(presupuesto)}
                 </small>
 
             </div>
@@ -1306,7 +1388,7 @@ function mostrarDatosObra(obra) {
                 </span>
 
                 <strong>
-                    ${obra.expediente || "-"}
+                    ${escaparHtml(obra.expediente || "-")}
                 </strong>
 
             </div>
@@ -1340,7 +1422,7 @@ function mostrarDatosObra(obra) {
                 </span>
 
                 <strong>
-                    ${obra.tipoGeometria || "-"}
+                    ${escaparHtml(obra.tipoGeometria || "-")}
                 </strong>
 
             </div>
@@ -1404,8 +1486,8 @@ function agregarUbicacionesPuntualesObra(obra) {
     const ubicacionesValidas =
         obra.ubicaciones.filter(
             ubicacion =>
-                ubicacion.latitud != null &&
-                ubicacion.longitud != null
+                Number.isFinite(ubicacion.latitud) &&
+                Number.isFinite(ubicacion.longitud)
         );
 
 
@@ -1448,11 +1530,11 @@ function agregarUbicacionesPuntualesObra(obra) {
                     <div class="obra-tooltip">
 
                         <strong>
-                            ${obra.nombre}
+                            ${escaparHtml(obra.nombre)}
                         </strong>
 
                         <span>
-                            ${ubicacion.descripcion}
+                            ${escaparHtml(ubicacion.descripcion)}
                         </span>
 
                     </div>
@@ -1506,46 +1588,39 @@ document.addEventListener(
     "change",
     async function (event) {
 
-        if (
-            event.target.id !==
-            "toggleObras"
-        ) {
+        if (!["toggleObras", "toggleTramosObras"].includes(event.target.id)) {
             return;
         }
+
+        const esTramos = event.target.id === "toggleTramosObras";
 
 
         if (event.target.checked) {
 
-            await cargarObras();
-
-
-            if (
-                !map.hasLayer(
-                    obrasLayer
-                )
-            ) {
-
-                obrasLayer.addTo(
-                    map
-                );
-
+            try {
+                if (esTramos) await cargarTramosObras();
+                else await cargarObras();
             }
-            abrirPanelObras();
+            catch {
+                event.target.checked = false;
+                mostrarToast(
+                    "Obras no disponibles",
+                    "La fuente municipal no respondió. Probá nuevamente en unos minutos.",
+                    "warning"
+                );
+                return;
+            }
+
+
+            const capa = esTramos ? tramosObrasLayer : obrasLayer;
+            if (!map.hasLayer(capa)) capa.addTo(map);
+            if (!esTramos) abrirPanelObras();
         }
         else {
 
-            if (
-                map.hasLayer(
-                    obrasLayer
-                )
-            ) {
-
-                map.removeLayer(
-                    obrasLayer
-                );
-
-            }
-            cerrarPanelObras();
+            const capa = esTramos ? tramosObrasLayer : obrasLayer;
+            if (map.hasLayer(capa)) map.removeLayer(capa);
+            if (!esTramos) cerrarPanelObras();
         }
     }
 );
@@ -1584,6 +1659,7 @@ document.addEventListener(
             filtroObrasActual =
                 botonFiltro.dataset.filtro;
 
+            renderizarObrasEnMapa();
 
             renderizarListaObras();
 
@@ -1617,21 +1693,4 @@ document.getElementById("overlayPanelObras")?.addEventListener(
             }
 
         }
-);
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        cargarObras()
-            .catch(
-                error => {
-                    console.warn(
-                        "No se pudieron precargar las obras:",
-                        error
-                    );
-                }
-            );
-
-    }
 );

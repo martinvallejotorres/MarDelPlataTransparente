@@ -8,6 +8,7 @@ using ReclamosMDP.API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,17 @@ builder.Services.AddHttpClient<ComisariasService>();
 builder.Services.AddScoped<SeguridadService>();
 
 builder.Services.AddHttpClient<ObrasImportService>();
+builder.Services.AddScoped<ObrasRepository>();
+builder.Services.AddSingleton<CatalogoDatosService>();
+builder.Services.AddHttpClient<AdministracionPublicaService>();
+builder.Services.AddHttpClient<MovilidadPublicaService>();
+builder.Services.AddHttpClient<MedioAmbienteService>();
+
+builder.Services.ConfigureHttpClientDefaults(http =>
+{
+    http.ConfigureHttpClient(client =>
+        client.Timeout = TimeSpan.FromSeconds(30));
+});
 
 
 builder.Services.AddScoped<JwtService>();
@@ -76,6 +88,10 @@ builder.Services
             options.Password.RequiredLength = 6;
 
             options.User.RequireUniqueEmail = true;
+
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
         }
     )
     .AddEntityFrameworkStores<ReclamosDbContext>()
@@ -98,6 +114,21 @@ builder.Services
 
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Cookies.TryGetValue(
+                        "reclamos_auth",
+                        out var token))
+                {
+                    context.Token = token;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+
         options.TokenValidationParameters =
             new TokenValidationParameters
             {
@@ -160,10 +191,23 @@ builder.Services.Configure<ForwardedHeadersOptions>(
             ForwardedHeaders.XForwardedFor |
             ForwardedHeaders.XForwardedProto;
 
-        options.KnownNetworks.Clear();
-        options.KnownProxies.Clear();
     }
 );
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("datos-externos", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "local",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 
 
 // =========================================
@@ -221,9 +265,30 @@ if (!app.Environment.IsDevelopment())
 }
 
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers.ContentSecurityPolicy =
+        "default-src 'self'; " +
+        "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; " +
+        "img-src 'self' data: blob: https://*.openstreetmap.org https://server.arcgisonline.com https://placehold.co; " +
+        "connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
+
+    await next();
+});
 
 app.UseStaticFiles();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 
@@ -231,6 +296,21 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapFallbackToFile("index.html");
+app.MapFallback(async context =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "El endpoint solicitado no existe."
+        });
+        return;
+    }
+
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(
+        Path.Combine(app.Environment.WebRootPath, "index.html"));
+});
 
 await app.RunAsync();

@@ -316,8 +316,10 @@ html {
 ========================================= */
 
 .control-datos-wrapper {
-    position: relative;
-    top: 70px;
+    position: absolute;
+    top: 2px;
+    right: 200px;
+    z-index: 1000;
     font-family: "Inter", sans-serif;
 }
 
@@ -326,6 +328,7 @@ html {
     height: 38px;
     display: flex;
     align-items: center;
+    
     justify-content: center;
     gap: 7px;
     padding: 0 12px;
@@ -343,6 +346,7 @@ html {
 
     .control-datos-boton i {
         font-size: 14px;
+
     }
 
     .control-datos-boton:hover {
@@ -367,6 +371,23 @@ html {
     visibility: hidden;
     transform: translateY(-6px);
     transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    box-sizing: border-box;
+    max-height: min(520px, calc(100vh - 130px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+}
+
+.control-datos-panel::-webkit-scrollbar {
+    width: 7px;
+}
+
+.control-datos-panel::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #94a3b8;
 }
 
 
@@ -1212,6 +1233,45 @@ html {
     overflow: hidden;
 }
 
+.control-datos-icono.tramos {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.control-datos-icono.administracion {
+    color: #0f766e;
+    background: #ccfbf1;
+}
+
+/* =========================================
+   CONTROL MAPAS BASE DE LEAFLET
+========================================= */
+
+.leaflet-control-layers-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    background-image: none !important;
+    background-color: #fff !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 9px;
+}
+
+
+    .leaflet-control-layers-toggle::before {
+        content: "\f5fd";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        font-size: 17px;
+        color: #1e3a8a;
+    }
+
+.leaflet-top.leaflet-right {
+    top: 14px;
+    right: 12px;
+}
 
 /* =========================
    MOBILE
@@ -1262,3 +1322,5 @@ html {
         grid-template-columns: 1fr;
     }
 }
+
+

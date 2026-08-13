@@ -11,17 +11,6 @@
 
 async function cargarPerfil() {
 
-    const token = localStorage.getItem("token");
-
-    // Si no está logueado, no debería poder entrar al perfil
-    if (!token) {
-
-        window.location.href = "/";
-        return;
-
-    }
-
-
     try {
 
         const usuario = await apiFetch(
@@ -91,11 +80,8 @@ async function cargarPerfil() {
 }
 
 
-function cerrarSesionPerfil() {
+async function cerrarSesionPerfil() {
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-
-    window.location.href = "/";
+    await cerrarSesion();
 
 }

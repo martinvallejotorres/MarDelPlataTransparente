@@ -39,6 +39,10 @@
         public List<UbicacionObraDto> Ubicaciones { get; set; } = new();
 
         public List<TramoObraDto> Tramos { get; set; } = new();
+
+        public List<int> EventosRelacionados { get; set; } = new();
+
+        public int? AnioFuente { get; set; }
     }
 
 

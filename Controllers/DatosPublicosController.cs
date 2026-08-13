@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ReclamosMDP.API.DTOs;
 using ReclamosMDP.API.Services;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ReclamosMDP.API.Controllers
 {
@@ -12,6 +13,7 @@ namespace ReclamosMDP.API.Controllers
     )]
 
     [AllowAnonymous]
+    [EnableRateLimiting("datos-externos")]
     public class DatosPublicosController: ControllerBase
     {
         private readonly
@@ -24,10 +26,23 @@ namespace ReclamosMDP.API.Controllers
         private readonly ObrasImportService
             _obrasImportService;
 
+        private readonly ObrasRepository _obrasRepository;
+        private readonly CatalogoDatosService _catalogoDatosService;
+        private readonly AdministracionPublicaService _administracionPublicaService;
+        private readonly MovilidadPublicaService _movilidadPublicaService;
+        private readonly MedioAmbienteService _medioAmbienteService;
+        private readonly IWebHostEnvironment _environment;
+
         public DatosPublicosController(
             ComisariasService comisariasService,
             SeguridadService seguridadService,
-            ObrasImportService obrasImportService
+            ObrasImportService obrasImportService,
+            ObrasRepository obrasRepository,
+            CatalogoDatosService catalogoDatosService,
+            AdministracionPublicaService administracionPublicaService,
+            MovilidadPublicaService movilidadPublicaService,
+            MedioAmbienteService medioAmbienteService,
+            IWebHostEnvironment environment
         )
         {
             _comisariasService =
@@ -38,6 +53,12 @@ namespace ReclamosMDP.API.Controllers
 
             _obrasImportService =
                  obrasImportService;
+            _obrasRepository = obrasRepository;
+            _catalogoDatosService = catalogoDatosService;
+            _administracionPublicaService = administracionPublicaService;
+            _movilidadPublicaService = movilidadPublicaService;
+            _medioAmbienteService = medioAmbienteService;
+            _environment = environment;
         }
 
         [HttpGet("seguridad")]
@@ -62,7 +83,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -96,7 +117,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -124,6 +145,11 @@ namespace ReclamosMDP.API.Controllers
                     );
                 }
 
+                if (anio < 2000 || anio > DateTime.UtcNow.Year)
+                {
+                    return BadRequest(new { error = "El año indicado no es válido." });
+                }
+
 
                 var obras =
                     await
@@ -147,7 +173,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -181,7 +207,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -222,7 +248,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -254,6 +280,12 @@ namespace ReclamosMDP.API.Controllers
                     );
                 }
 
+                if (anioDesde < 2000 || anioDesde > DateTime.UtcNow.Year ||
+                    anioHasta < 2000 || anioHasta > DateTime.UtcNow.Year)
+                {
+                    return BadRequest(new { error = "El rango de años no es válido." });
+                }
+
 
                 var desde =
                     new DateTime(
@@ -282,6 +314,11 @@ namespace ReclamosMDP.API.Controllers
                     );
                 }
 
+                if (((hasta.Year - desde.Year) * 12 + hasta.Month - desde.Month) >= 12)
+                {
+                    return BadRequest(new { error = "El período máximo permitido es de 12 meses." });
+                }
+
 
                 var obrasBasicas =
                     await _obrasImportService
@@ -293,6 +330,9 @@ namespace ReclamosMDP.API.Controllers
 
                 var detalles =
                     new List<ObraDetalleDto>();
+
+                var erroresDetalle =
+                    new List<Exception>();
 
 
                 foreach (
@@ -322,10 +362,19 @@ namespace ReclamosMDP.API.Controllers
                     }
                     catch (Exception ex)
                     {
+                        erroresDetalle.Add(ex);
+
                         Console.WriteLine(
                             $"ERROR DETALLE {obra.EventoId} -> {ex}"
                         );
                     }
+                }
+
+                if (erroresDetalle.Count > 0)
+                {
+                    throw new HttpRequestException(
+                        $"Falló el detalle de {erroresDetalle.Count} obra(s).",
+                        erroresDetalle[0]);
                 }
 
 
@@ -359,7 +408,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -400,7 +449,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -432,6 +481,12 @@ namespace ReclamosMDP.API.Controllers
                     );
                 }
 
+                if (anioDesde < 2000 || anioDesde > DateTime.UtcNow.Year ||
+                    anioHasta < 2000 || anioHasta > DateTime.UtcNow.Year)
+                {
+                    return BadRequest(new { error = "El rango de años no es válido." });
+                }
+
 
                 var desde =
                     new DateTime(
@@ -458,6 +513,11 @@ namespace ReclamosMDP.API.Controllers
                                 "La fecha inicial no puede ser posterior a la final."
                         }
                     );
+                }
+
+                if (((hasta.Year - desde.Year) * 12 + hasta.Month - desde.Month) >= 12)
+                {
+                    return BadRequest(new { error = "El período máximo permitido es de 12 meses." });
                 }
 
 
@@ -498,7 +558,7 @@ namespace ReclamosMDP.API.Controllers
 
 
                 return StatusCode(
-                    500,
+                    StatusCodes.Status503ServiceUnavailable,
                     new
                     {
                         error =
@@ -509,8 +569,16 @@ namespace ReclamosMDP.API.Controllers
         }
 
         [HttpGet("obras/anio/{anio:int}")]
-        public async Task<IActionResult> ObtenerObrasPorAnio(int anio)
+        public async Task<IActionResult> ObtenerObrasPorAnio(
+            int anio,
+            [FromQuery] bool actualizar = false)
         {
+            if (actualizar && !_environment.IsDevelopment() &&
+                !(User.Identity?.IsAuthenticated == true && User.IsInRole("Admin")))
+            {
+                return Forbid();
+            }
+
             if (
                 anio < 2000
                 ||
@@ -527,6 +595,7 @@ namespace ReclamosMDP.API.Controllers
                 await _obrasImportService
                     .ObtenerObrasPorAnio(
                         anio
+                        , actualizar
                     );
 
 
@@ -538,6 +607,206 @@ namespace ReclamosMDP.API.Controllers
                     obras
                 }
             );
+        }
+
+        [HttpGet("categorias")]
+        public IActionResult ObtenerCategorias()
+        {
+            var categorias = _catalogoDatosService.ObtenerCategorias();
+            return Ok(new
+            {
+                cantidad = categorias.Count,
+                actualizado = DateTime.UtcNow.Date,
+                categorias
+            });
+        }
+
+        [HttpGet("administracion-publica")]
+        public async Task<IActionResult> ObtenerAdministracionPublica(
+            [FromQuery] int anio = 2026,
+            [FromQuery] string planta = "todas",
+            [FromQuery] string? cargo = null)
+        {
+            if (!_administracionPublicaService.ObtenerAnios().Contains(anio))
+                return BadRequest(new { error = "No hay un corte disponible para ese año." });
+
+            if (!new[] { "todas", "P", "T", "C" }.Contains(planta, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(new { error = "El tipo de planta indicado no es válido." });
+
+            try
+            {
+                var resumen = await _administracionPublicaService.ObtenerResumen(anio, planta, cargo);
+                return Ok(new
+                {
+                    aniosDisponibles = _administracionPublicaService.ObtenerAnios(),
+                    resumen
+                });
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR ADMINISTRACION PUBLICA -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "La fuente municipal de Administración Pública no respondió." });
+            }
+        }
+
+        [HttpGet("administracion-publica/delegaciones")]
+        public async Task<IActionResult> ObtenerDelegacionesMunicipales()
+        {
+            try
+            {
+                var geoJson = await _administracionPublicaService.ObtenerDelegacionesGeoJson();
+                return Content(geoJson, "application/geo+json", System.Text.Encoding.UTF8);
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR DELEGACIONES -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "No se pudo obtener el mapa de delegaciones municipales." });
+            }
+        }
+
+        [HttpGet("movilidad-transporte")]
+        public async Task<IActionResult> ObtenerMovilidadTransporte([FromQuery] int anio = 2025)
+        {
+            if (!_movilidadPublicaService.ObtenerAnios().Contains(anio))
+                return BadRequest(new { error = "No hay datos de movilidad disponibles para ese año." });
+
+            try
+            {
+                var resumen = await _movilidadPublicaService.ObtenerResumen(anio);
+                return Ok(new
+                {
+                    aniosDisponibles = _movilidadPublicaService.ObtenerAnios(),
+                    resumen
+                });
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR MOVILIDAD -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "Las fuentes municipales de movilidad no respondieron." });
+            }
+        }
+
+        [HttpGet("movilidad-transporte/recorridos")]
+        public async Task<IActionResult> ObtenerRecorridosColectivos()
+        {
+            try
+            {
+                var geoJson = await _movilidadPublicaService.ObtenerRecorridosGeoJson();
+                return Content(geoJson, "application/geo+json", System.Text.Encoding.UTF8);
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR RECORRIDOS -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "No se pudieron obtener los recorridos oficiales." });
+            }
+        }
+
+        [HttpGet("movilidad-transporte/paradas")]
+        public async Task<IActionResult> ObtenerParadasColectivos()
+        {
+            try
+            {
+                var geoJson = await _movilidadPublicaService.ObtenerParadasGeoJson();
+                return Content(geoJson, "application/geo+json", System.Text.Encoding.UTF8);
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR PARADAS -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "No se pudieron obtener las paradas oficiales." });
+            }
+        }
+
+        [HttpGet("medio-ambiente")]
+        public async Task<IActionResult> ObtenerMedioAmbiente([FromQuery] int anio = 2024)
+        {
+            if (!_medioAmbienteService.ObtenerAnios().Contains(anio))
+                return BadRequest(new { error = "No hay datos ambientales disponibles para ese año." });
+
+            try
+            {
+                var resumen = await _medioAmbienteService.ObtenerResumen(anio);
+                return Ok(new { aniosDisponibles = _medioAmbienteService.ObtenerAnios(), resumen });
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR MEDIO AMBIENTE -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "Las fuentes municipales de Medio Ambiente no respondieron." });
+            }
+        }
+
+        [HttpGet("medio-ambiente/arroyos")]
+        public async Task<IActionResult> ObtenerArroyos()
+        {
+            try { return Content(await _medioAmbienteService.ObtenerArroyosGeoJson(), "application/geo+json", System.Text.Encoding.UTF8); }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR ARROYOS -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "No se pudo obtener la red oficial de arroyos." });
+            }
+        }
+
+        [HttpGet("medio-ambiente/estaciones")]
+        public async Task<IActionResult> ObtenerEstacionesAmbientales()
+        {
+            try { return Content(await _medioAmbienteService.ObtenerEstacionesGeoJson(), "application/geo+json", System.Text.Encoding.UTF8); }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR ESTACIONES AMBIENTALES -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "No se pudieron obtener las estaciones ambientales." });
+            }
+        }
+
+        [HttpGet("medio-ambiente/puntos-agua")]
+        public async Task<IActionResult> ObtenerPuntosMuestreoAgua()
+        {
+            try { return Content(await _medioAmbienteService.ObtenerPuntosAguaGeoJson(), "application/geo+json", System.Text.Encoding.UTF8); }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR PUNTOS DE AGUA -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "No se pudieron obtener los puntos de muestreo de agua." });
+            }
+        }
+
+        [HttpGet("obras/comparacion-tramos")]
+        public async Task<IActionResult> CompararTramos(
+            [FromQuery] int anioDesde = 2024,
+            [FromQuery] int? anioHasta = null)
+        {
+            var hasta = anioHasta ?? DateTime.UtcNow.Year;
+            if (anioDesde < 2000 || hasta > DateTime.UtcNow.Year || anioDesde > hasta)
+                return BadRequest(new { error = "El rango de años no es válido." });
+
+            var comparaciones = await _obrasRepository.CompararTramos(anioDesde, hasta);
+            return Ok(new { anioDesde, anioHasta = hasta, cantidad = comparaciones.Count, comparaciones });
+        }
+
+        [HttpGet("obras/tramos")]
+        public async Task<IActionResult> ObtenerTramosObras(
+            [FromQuery] int anioDesde = 2024,
+            [FromQuery] int? anioHasta = null)
+        {
+            var hasta = anioHasta ?? DateTime.UtcNow.Year;
+            if (anioDesde < 2000 || hasta > DateTime.UtcNow.Year || anioDesde > hasta)
+                return BadRequest(new { error = "El rango de años no es válido." });
+
+            if (hasta - anioDesde > 10)
+                return BadRequest(new { error = "El período máximo permitido es de 10 años." });
+
+            var obras = await _obrasRepository.ObtenerConTramosCompletos(anioDesde, hasta);
+            return Ok(new
+            {
+                anioDesde,
+                anioHasta = hasta,
+                cantidadObras = obras.Count,
+                cantidadTramos = obras.Sum(o => o.Tramos.Count),
+                obras
+            });
         }
     }
 

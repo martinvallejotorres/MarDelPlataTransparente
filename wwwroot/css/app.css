@@ -354,7 +354,7 @@ hr {
 
 .resumen-obras-anio {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 20px;
 }
@@ -482,6 +482,441 @@ hr {
     gap: 8px;
 }
 
+.nota-estados-obras {
+    margin: -10px 0 22px;
+    color: #64748b;
+    font-size: .8rem;
+}
+
+.selector-categoria-datos {
+    min-width: min(360px, 100%);
+}
+
+.selector-categoria-datos label,
+.toolbar-categoria-datos label,
+.filtros-administracion label {
+    display: block;
+    margin-bottom: 6px;
+    color: #64748b;
+    font-size: .74rem;
+    font-weight: 700;
+}
+
+.selector-categoria-datos select,
+.toolbar-categoria-datos select,
+.filtros-administracion select,
+.filtros-administracion input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 13px;
+    border: 1px solid #dbe2ea;
+    border-radius: 10px;
+    background: #fff;
+    color: #0f172a;
+}
+
+.toolbar-categoria-datos {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 18px;
+}
+
+.toolbar-categoria-datos > div {
+    width: 160px;
+}
+
+.panel-categoria-datos[hidden] {
+    display: none !important;
+}
+
+.panel-categoria-datos.cargando {
+    opacity: .65;
+    pointer-events: none;
+}
+
+.filtros-administracion {
+    display: grid;
+    grid-template-columns: .7fr .9fr 1.5fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.resumen-administracion {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.resumen-administracion > div {
+    padding: 18px;
+    border: 1px solid #e8edf3;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.resumen-administracion span,
+.resumen-administracion strong {
+    display: block;
+}
+
+.resumen-administracion span {
+    margin-bottom: 5px;
+    color: #64748b;
+    font-size: .75rem;
+}
+
+.resumen-administracion strong {
+    color: #0f172a;
+    font-size: 1.35rem;
+}
+
+.nota-fuente-administracion {
+    margin: 12px 0 20px;
+    color: #64748b;
+    font-size: .78rem;
+}
+
+.graficos-administracion {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.graficos-administracion article {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #e8edf3;
+    border-radius: 16px;
+    background: #fff;
+}
+
+.graficos-administracion h3 {
+    margin: 0 0 14px;
+    color: #0f172a;
+    font-size: .95rem;
+}
+
+.grafico-administracion-contenedor {
+    position: relative;
+    height: 260px;
+}
+
+.grafico-administracion-contenedor.alto {
+    height: 330px;
+}
+
+.administracion-mapa-aviso {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 14px;
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid #99f6e4;
+    border-radius: 14px;
+    background: #f0fdfa;
+    color: #115e59;
+}
+
+.administracion-mapa-aviso > i {
+    font-size: 1.45rem;
+}
+
+.administracion-mapa-aviso strong,
+.administracion-mapa-aviso span {
+    display: block;
+}
+
+.administracion-mapa-aviso span {
+    margin-top: 3px;
+    font-size: .78rem;
+}
+
+.administracion-mapa-aviso button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 9px;
+    background: #0f766e;
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 750;
+}
+
+.graficos-obras-publicas {
+    margin-bottom: 18px;
+}
+
+.obras-mapa-aviso {
+    margin-top: 0;
+    margin-bottom: 22px;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+}
+
+.acciones-mapa-obras {
+    display: flex;
+    gap: 8px;
+}
+
+.obras-mapa-aviso button {
+    white-space: nowrap;
+    background: #2563eb;
+}
+
+.obras-mapa-aviso button + button {
+    background: #0f766e;
+}
+
+.movilidad-mapa-aviso {
+    border-color: #99f6e4;
+    background: #f0fdfa;
+    color: #115e59;
+}
+
+.acciones-mapa-movilidad button,
+.acciones-mapa-movilidad button + button {
+    background: #0f766e;
+}
+
+.acciones-mapa-movilidad button:last-child {
+    background: #2563eb;
+}
+
+.control-datos-icono.movilidad {
+    color: #0f766e;
+    background: #ccfbf1;
+}
+
+.filtros-ambiente {
+    grid-template-columns: minmax(220px, 340px);
+}
+
+.ambiente-mapa-aviso {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.acciones-mapa-ambiente {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.acciones-mapa-ambiente button,
+.acciones-mapa-ambiente button + button {
+    background: #15803d;
+}
+
+.control-datos-icono.ambiente {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.estado-ambiental-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.indicadores-ambientales {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    flex: 1;
+}
+
+.indicadores-ambientales > div {
+    display: flex;
+    min-height: 110px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.indicadores-ambientales span,
+.indicadores-ambientales strong {
+    display: block;
+}
+
+.indicadores-ambientales span {
+    color: #64748b;
+    font-size: .75rem;
+}
+
+.indicadores-ambientales strong {
+    margin-top: 5px;
+    color: #166534;
+    font-size: 1.3rem;
+}
+
+.catalogo-datos-ciudad {
+    padding: 72px 0;
+    background: #fff;
+    border-top: 1px solid #edf1f5;
+}
+
+.catalogo-datos-header {
+    max-width: 760px;
+    margin-bottom: 30px;
+}
+
+.catalogo-datos-eyebrow {
+    color: #db3b87;
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+.catalogo-datos-header h2 {
+    margin: 8px 0 10px;
+    color: #0f172a;
+    font-size: clamp(1.65rem, 3vw, 2.25rem);
+}
+
+.catalogo-datos-header p {
+    margin: 0;
+    color: #64748b;
+}
+
+.grilla-categorias-datos {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+
+.categoria-datos-card {
+    min-width: 0;
+    border: 1px solid #e7ebf0;
+    border-radius: 16px;
+    background: #fff;
+    transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.categoria-datos-card:hover,
+.categoria-datos-card.abierta {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+}
+
+.categoria-datos-boton {
+    width: 100%;
+    min-height: 145px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 18px 10px;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    color: #c84187;
+    text-align: center;
+    cursor: pointer;
+}
+
+.categoria-datos-icono {
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    color: #123f74;
+    font-size: 1.8rem;
+}
+
+.categoria-datos-icono.amarillo { background: #ffcf43; }
+.categoria-datos-icono.rosa { background: #e63d91; color: #fff; }
+.categoria-datos-icono.turquesa { background: #08b6aa; }
+
+.categoria-datos-boton strong {
+    font-size: .82rem;
+    line-height: 1.25;
+}
+
+.categoria-datos-detalle {
+    padding: 0 12px 14px;
+}
+
+.fuente-datos,
+.categoria-datos-local {
+    display: block;
+    padding: 9px 10px;
+    border-top: 1px solid #edf1f5;
+    color: #334155;
+    text-decoration: none;
+}
+
+.fuente-datos span,
+.fuente-datos small {
+    display: block;
+}
+
+.fuente-datos span {
+    font-size: .73rem;
+    font-weight: 750;
+}
+
+.fuente-datos small {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: .65rem;
+    line-height: 1.35;
+}
+
+.fuente-datos.principal span { color: #0f766e; }
+
+.categoria-datos-local {
+    color: #2563eb;
+    font-size: .7rem;
+    font-weight: 750;
+}
+
+.catalogo-datos-cargando,
+.catalogo-datos-error {
+    grid-column: 1 / -1;
+    padding: 24px;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #64748b;
+    text-align: center;
+}
+
+.comparacion-tramos-historicos {
+    margin: 0 0 20px;
+    padding: 16px 18px;
+    border: 1px solid #fed7aa;
+    border-radius: 14px;
+    background: #fff7ed;
+    color: #7c2d12;
+}
+
+.comparacion-tramos-historicos strong,
+.comparacion-tramos-historicos span {
+    display: block;
+}
+
+.comparacion-tramos-historicos span,
+.comparacion-tramos-historicos li {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.comparacion-tramos-historicos ul {
+    margin: 8px 0 0;
+}
+
+.obra-llamados-unificados {
+    display: block;
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 11px;
+}
+
 
     .obra-historial-acciones button {
         border-radius: 9px;
@@ -567,6 +1002,33 @@ hr {
         grid-template-columns: 1fr;
     }
 
+    .filtros-administracion,
+    .resumen-administracion,
+    .graficos-administracion {
+        grid-template-columns: 1fr;
+    }
+
+    .administracion-mapa-aviso {
+        grid-template-columns: auto 1fr;
+    }
+
+    .administracion-mapa-aviso button {
+        grid-column: 1 / -1;
+    }
+
+    .acciones-mapa-obras {
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+    }
+
+    .acciones-mapa-obras button {
+        flex: 1 1 150px;
+    }
+
+    .grilla-categorias-datos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
 
     .resumen-obras-anio {
         grid-template-columns: 1fr;
@@ -592,6 +1054,10 @@ hr {
 @media (max-width: 480px) {
 
     .tipos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .grilla-categorias-datos {
         grid-template-columns: 1fr;
     }
 

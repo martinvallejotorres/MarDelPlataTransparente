@@ -1,16 +1,21 @@
 ﻿using System.Globalization;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ReclamosMDP.API.Services
 {
     public class GeocodingService
     {
+        private static readonly SemaphoreSlim OverpassLock = new(1, 1);
+        private static DateTime _ultimaConsultaOverpassUtc = DateTime.MinValue;
         private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
 
 
-        public GeocodingService(HttpClient httpClient)
+        public GeocodingService(HttpClient httpClient, IMemoryCache cache)
         {
             _httpClient = httpClient;
+            _cache = cache;
 
             // Nominatim requiere identificar la aplicación
             _httpClient.DefaultRequestHeaders.UserAgent.Clear();
@@ -29,14 +34,27 @@ namespace ReclamosMDP.API.Services
             string direccion)
         {
             var busqueda =
-                $"{direccion}, Mar del Plata, Argentina";
+                $"{direccion}, Mar del Plata, General Pueyrredon, Argentina";
+
+            var cacheKey = $"geocode:{busqueda.Trim().ToLowerInvariant()}";
+            if (_cache.TryGetValue($"{cacheKey}:miss", out bool _))
+            {
+                return null;
+            }
+            if (_cache.TryGetValue(cacheKey, out ValueTuple<double, double> cache))
+            {
+                return (cache.Item1, cache.Item2);
+            }
 
 
             var url =
                 "https://nominatim.openstreetmap.org/search" +
                 $"?q={Uri.EscapeDataString(busqueda)}" +
                 "&format=json" +
-                "&limit=1";
+                "&limit=5" +
+                "&countrycodes=ar" +
+                "&viewbox=-57.75,-37.85,-57.35,-38.15" +
+                "&bounded=1";
 
 
             var response =
@@ -68,21 +86,84 @@ namespace ReclamosMDP.API.Services
                 resultados.Count == 0
             )
             {
+                _cache.Set($"{cacheKey}:miss", true, TimeSpan.FromDays(7));
                 return null;
             }
 
+            foreach (var resultado in resultados)
+            {
+                if (!double.TryParse(resultado.lat, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out var latitud) ||
+                    !double.TryParse(resultado.lon, NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out var longitud) ||
+                    !double.IsFinite(latitud) || !double.IsFinite(longitud) ||
+                    latitud < -38.15 || latitud > -37.85 ||
+                    longitud < -57.75 || longitud > -57.35)
+                    continue;
 
-            return (
-                double.Parse(
-                    resultados[0].lat,
-                    CultureInfo.InvariantCulture
-                ),
+                var coordenadas = (latitud, longitud);
+                _cache.Set(cacheKey, coordenadas, TimeSpan.FromDays(30));
+                return coordenadas;
+            }
 
-                double.Parse(
-                    resultados[0].lon,
-                    CultureInfo.InvariantCulture
-                )
-            );
+            _cache.Set($"{cacheKey}:miss", true, TimeSpan.FromDays(7));
+            return null;
+        }
+
+        public async Task<(double lat, double lon)?> ObtenerInterseccionOsm(
+            string calle,
+            string transversal)
+        {
+            var nombres = new[] { calle.Trim().ToLowerInvariant(), transversal.Trim().ToLowerInvariant() }
+                .OrderBy(x => x).ToArray();
+            var cacheKey = $"overpass:{nombres[0]}|{nombres[1]}";
+            if (_cache.TryGetValue(cacheKey, out ValueTuple<double, double> cache))
+                return (cache.Item1, cache.Item2);
+            if (_cache.TryGetValue($"{cacheKey}:miss", out bool _))
+                return null;
+
+            static string Escapar(string valor) => valor
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"");
+
+            var query =
+                "[out:json][timeout:20][bbox:-38.15,-57.75,-37.85,-57.35];" +
+                $"way[highway][name~\"{Escapar(calle)}\",i]->.principal;" +
+                $"way[name~\"{Escapar(transversal)}\",i]->.transversal;" +
+                "node(w.principal)(w.transversal);out;";
+            var url = "https://overpass-api.de/api/interpreter?data=" +
+                      Uri.EscapeDataString(query);
+
+            try
+            {
+                await OverpassLock.WaitAsync();
+                var espera = TimeSpan.FromMilliseconds(2500) -
+                             (DateTime.UtcNow - _ultimaConsultaOverpassUtc);
+                if (espera > TimeSpan.Zero) await Task.Delay(espera);
+                using var response = await _httpClient.GetAsync(url);
+                _ultimaConsultaOverpassUtc = DateTime.UtcNow;
+                if (!response.IsSuccessStatusCode) return null;
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                foreach (var elemento in json.RootElement.GetProperty("elements").EnumerateArray())
+                {
+                    if (!elemento.TryGetProperty("lat", out var latNode) ||
+                        !elemento.TryGetProperty("lon", out var lonNode)) continue;
+                    var coordenadas = (latNode.GetDouble(), lonNode.GetDouble());
+                    _cache.Set(cacheKey, coordenadas, TimeSpan.FromDays(30));
+                    return coordenadas;
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                Console.WriteLine($"Overpass intersection error: {ex.Message}");
+            }
+            finally
+            {
+                if (OverpassLock.CurrentCount == 0) OverpassLock.Release();
+            }
+
+            _cache.Set($"{cacheKey}:miss", true, TimeSpan.FromDays(7));
+            return null;
         }
 
 
@@ -94,6 +175,12 @@ namespace ReclamosMDP.API.Services
             double latitud,
             double longitud)
         {
+            var cacheKey = $"reverse:{latitud:F6}:{longitud:F6}";
+            if (_cache.TryGetValue(cacheKey, out string? direccionCache))
+            {
+                return direccionCache;
+            }
+
             var lat =
                 latitud.ToString(
                     CultureInfo.InvariantCulture
@@ -132,11 +219,6 @@ namespace ReclamosMDP.API.Services
                 await response.Content.ReadAsStringAsync();
 
 
-            Console.WriteLine(
-                $"NOMINATIM REVERSE -> {contenido}"
-            );
-
-
             using var json =
                 JsonDocument.Parse(contenido);
 
@@ -152,7 +234,13 @@ namespace ReclamosMDP.API.Services
             }
 
 
-            return displayName.GetString();
+            var direccion = displayName.GetString();
+            if (!string.IsNullOrWhiteSpace(direccion))
+            {
+                _cache.Set(cacheKey, direccion, TimeSpan.FromDays(30));
+            }
+
+            return direccion;
         }
     }
 

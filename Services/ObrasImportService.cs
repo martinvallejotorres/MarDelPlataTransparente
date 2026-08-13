@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using UglyToad.PdfPig;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text;
 
 
 namespace ReclamosMDP.API.Services
@@ -21,7 +22,9 @@ namespace ReclamosMDP.API.Services
 
         private readonly IMemoryCache _cache;
 
-        public ObrasImportService(HttpClient httpClient, GeocodingService geocodingService, IMemoryCache cache)
+        private readonly ObrasRepository _repository;
+
+        public ObrasImportService(HttpClient httpClient, GeocodingService geocodingService, IMemoryCache cache, ObrasRepository repository)
         {
             _httpClient = httpClient;
 
@@ -36,6 +39,7 @@ namespace ReclamosMDP.API.Services
               geocodingService;
 
             _cache = cache;
+            _repository = repository;
         }
 
         private async Task<ObraDetalleDto>ObtenerDetalleObraBase(int eventoId)
@@ -140,6 +144,9 @@ namespace ReclamosMDP.API.Services
             var obras =
                 new List<ObraImportDto>();
 
+            var errores =
+                new List<Exception>();
+
 
             var fechaActual =
                 new DateTime(
@@ -174,6 +181,8 @@ namespace ReclamosMDP.API.Services
                 }
                 catch (Exception ex)
                 {
+                    errores.Add(ex);
+
                     Console.WriteLine(
                         $"ERROR OBRAS {fechaActual.Month}/{fechaActual.Year} -> {ex.Message}"
                     );
@@ -182,6 +191,13 @@ namespace ReclamosMDP.API.Services
 
                 fechaActual =
                     fechaActual.AddMonths(1);
+            }
+
+            if (errores.Count > 0)
+            {
+                throw new HttpRequestException(
+                    $"La fuente municipal falló en {errores.Count} mes(es) del período solicitado.",
+                    errores[0]);
             }
 
 
@@ -322,7 +338,7 @@ namespace ReclamosMDP.API.Services
                             ),
 
                         Fecha =
-                            "",
+                            mes.ToString(CultureInfo.InvariantCulture),
 
                         FuenteUrl =
                             fuenteUrl
@@ -342,7 +358,11 @@ namespace ReclamosMDP.API.Services
         }
 
 
-        public async Task<ObraDetalleDto> ObtenerDetalleObra( int eventoId)
+        public async Task<ObraDetalleDto> ObtenerDetalleObra(
+            int eventoId,
+            int? anioFuente = null,
+            int? mesFuente = null,
+            bool forzarActualizacion = false)
         {
             // ==========================================
             // CACHE
@@ -352,7 +372,7 @@ namespace ReclamosMDP.API.Services
                 $"obra-detalle-{eventoId}";
 
 
-            if (
+            if (!forzarActualizacion &&
                 _cache.TryGetValue(
                     cacheKey,
                     out ObraDetalleDto? obraCache
@@ -362,6 +382,16 @@ namespace ReclamosMDP.API.Services
             )
             {
                 return obraCache;
+            }
+
+            if (!forzarActualizacion)
+            {
+                var persistida = await _repository.Obtener(eventoId);
+                if (persistida != null)
+                {
+                    _cache.Set(cacheKey, persistida, TimeSpan.FromHours(12));
+                    return persistida;
+                }
             }
 
 
@@ -383,6 +413,8 @@ namespace ReclamosMDP.API.Services
                 DetectarEstado(
                     detalle.Documentos
                 );
+
+            detalle.EventosRelacionados = new List<int> { eventoId };
 
 
             // ==========================================
@@ -726,6 +758,20 @@ namespace ReclamosMDP.API.Services
             }
 
 
+            detalle.Nombre = LimpiarNombreVisible(detalle.Nombre);
+
+            if (string.IsNullOrWhiteSpace(detalle.Licitacion))
+                detalle.Licitacion = ExtraerLicitacion(detalle.Nombre);
+
+            var anioPersistencia = anioFuente ?? detalle.FechaApertura?.Year;
+            if (anioPersistencia.HasValue &&
+                PareceObra(detalle.Nombre) &&
+                (!detalle.FechaApertura.HasValue || detalle.FechaApertura.Value.Year == anioPersistencia.Value))
+            {
+                detalle.AnioFuente = anioPersistencia.Value;
+                await _repository.Guardar(detalle, anioPersistencia.Value, mesFuente);
+            }
+
             // ==========================================
             // GUARDAR CACHE
             // ==========================================
@@ -817,13 +863,6 @@ namespace ReclamosMDP.API.Services
 
         private async Task<(double lat, double lon)?> BuscarInterseccion(string calle, string esquina)
         {
-            var intentos =
-                new[]
-                {
-            $"{calle} y {esquina}",
-            $"{calle} esquina {esquina}",
-            $"{calle} & {esquina}"
-                };
             calle =
                 NormalizarNombreCalle(
                     calle
@@ -833,6 +872,14 @@ namespace ReclamosMDP.API.Services
                 NormalizarNombreCalle(
                     esquina
                 );
+
+            var intentos =
+                new[]
+                {
+                    $"{calle} y {esquina}",
+                    $"{calle} esquina {esquina}",
+                    $"{calle} & {esquina}"
+                };
 
             foreach (var intento in intentos)
             {
@@ -859,17 +906,49 @@ namespace ReclamosMDP.API.Services
                 await Task.Delay(1100);
             }
 
+            var calleOsm = PrepararNombreOsm(calle);
+            var esquinaOsm = PrepararNombreOsm(esquina);
+            var interseccionOsm = await _geocodingService
+                .ObtenerInterseccionOsm(calleOsm, esquinaOsm);
+            if (interseccionOsm.HasValue &&
+                CoordenadaEsDeMarDelPlata(interseccionOsm.Value.lat, interseccionOsm.Value.lon))
+                return interseccionOsm;
+
 
             return null;
         }
 
-        public async Task<List<ObraDetalleDto>> ObtenerObrasPorAnio(int anio)
+        private static string PrepararNombreOsm(string nombre)
+        {
+            var normalizado = NormalizarParaBusqueda(nombre);
+            if (normalizado is "h. irigoyen" or "h irigoyen" or "hipolito irigoyen")
+                return "Hipólito (Yrigoyen|Irigoyen)|H\\.? Irigoyen";
+            if (normalizado == "brown") return "Brown";
+            if (normalizado == "roca") return "Roca";
+            if (normalizado == "beltran") return "Beltrán|Beltran";
+            if (normalizado.Contains("arroyo la tapera")) return "La Tapera";
+            return Regex.Escape(nombre.Trim());
+        }
+
+        public async Task<List<ObraDetalleDto>> ObtenerObrasPorAnio(int anio, bool forzarActualizacion = false)
         {
             var cacheKey =
                 $"obras-detalle-anio-{anio}";
 
 
-            if (
+            if (!forzarActualizacion && await _repository.EstaSincronizado(anio))
+            {
+                var persistidas = (await _repository.ObtenerPorAnio(anio))
+                    .Where(o => PareceObra(o.Nombre))
+                    .ToList();
+                var limpias = DeduplicarLlamados(persistidas);
+                await _repository.EliminarFueraDeSincronizacion(
+                    anio,
+                    limpias.Select(o => o.EventoId).ToArray());
+                return limpias;
+            }
+
+            if (!forzarActualizacion &&
                 _cache.TryGetValue(
                     cacheKey,
                     out List<ObraDetalleDto>? cache
@@ -908,6 +987,8 @@ namespace ReclamosMDP.API.Services
             var resultado =
                 new List<ObraDetalleDto>();
 
+            var errores = new List<Exception>();
+
 
             foreach (var obra in obras)
             {
@@ -915,8 +996,17 @@ namespace ReclamosMDP.API.Services
                 {
                     var detalle =
                         await ObtenerDetalleObra(
-                            obra.EventoId
+                            obra.EventoId,
+                            anio,
+                            int.TryParse(obra.Fecha, out var mes) ? mes : null,
+                            forzarActualizacion
                         );
+
+                    if (!PareceObra(detalle.Nombre) ||
+                        (detalle.FechaApertura.HasValue && detalle.FechaApertura.Value.Year != anio))
+                    {
+                        continue;
+                    }
 
 
                     resultado.Add(
@@ -925,11 +1015,28 @@ namespace ReclamosMDP.API.Services
                 }
                 catch (Exception ex)
                 {
+                    errores.Add(ex);
                     Console.WriteLine(
                         $"ERROR DETALLE OBRA {obra.EventoId}: {ex.Message}"
                     );
                 }
             }
+
+            if (errores.Count > 0)
+                Console.WriteLine($"SINCRONIZACION OBRAS {anio}: se omitieron {errores.Count} detalles inaccesibles.");
+
+            resultado = DeduplicarLlamados(resultado);
+
+            await _repository.EliminarFueraDeSincronizacion(
+                anio,
+                resultado.Select(o => o.EventoId).ToArray());
+
+            foreach (var obra in resultado)
+            {
+                await _repository.Guardar(obra, anio);
+            }
+
+            await _repository.MarcarSincronizado(anio, resultado.Count);
 
 
             _cache.Set(
@@ -944,6 +1051,23 @@ namespace ReclamosMDP.API.Services
 
         private static string DetectarEstado( List<DocumentoObraDto> documentos)
         {
+            var nombres = string.Join(" ", documentos.Select(d => d.Nombre));
+
+            if (Regex.IsMatch(nombres,
+                    @"(recepci[oó]n\s+definitiva|finalizaci[oó]n|final\s+de\s+obra|acta\s+de\s+recepci[oó]n)",
+                    RegexOptions.IgnoreCase))
+                return "Finalizada";
+
+            if (Regex.IsMatch(nombres,
+                    @"(acta\s+de\s+inicio|inicio\s+de\s+obra|contrato\s+de\s+obra)",
+                    RegexOptions.IgnoreCase))
+                return "En ejecución";
+
+            if (Regex.IsMatch(nombres,
+                    @"(adjudicaci[oó]n|decreto\s+de\s+adjudicaci[oó]n)",
+                    RegexOptions.IgnoreCase))
+                return "Adjudicada";
+
             var tieneActaApertura =
                 documentos.Any(
                     x =>
@@ -1118,13 +1242,16 @@ namespace ReclamosMDP.API.Services
       
         private static string ExtraerNombreObra(string texto)
         {
-            var match =
-                Regex.Match(
-                    texto,
-                    @"(?:LICITACI[ÓO]N\s+(?:P[ÚU]BLICA|PRIVADA)|CONCURSO\s+DE\s+PRECIOS|CONTRATACI[ÓO]N\s+DIRECTA).*?[“""]\s*(.+?)\s*[”""]",
-                    RegexOptions.IgnoreCase |
-                    RegexOptions.Singleline
-                );
+            var match = Regex.Match(texto,
+                @"(?:LICITACI[ÓO]N\s+(?:P[ÚU]BLICA|PRIVADA)|CONCURSO\s+DE\s+PRECIOS|CONTRATACI[ÓO]N\s+DIRECTA).*?[“""]\s*(.+?)\s*[”""]",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            if (!match.Success)
+            {
+                match = Regex.Match(texto,
+                    @"(?:OBJETO|DENOMINACI[ÓO]N\s+DE\s+LA\s+OBRA|OBRA)\s*:\s*[“""]?\s*(.+?)\s*(?=[”""]|EXPEDIENTE|PRESUPUESTO\s+OFICIAL|PLAZO|$)",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            }
 
             if (!match.Success)
             {
@@ -1134,6 +1261,101 @@ namespace ReclamosMDP.API.Services
             return LimpiarTexto(
                 match.Groups[1].Value
             );
+        }
+
+        private static string LimpiarNombreVisible(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre)) return "Obra pública";
+
+            var limpio = HtmlEntity.DeEntitize(nombre).Trim();
+            var reemplazos = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Licitaci�n"] = "Licitación",
+                ["P�blica"] = "Pública",
+                ["Contrataci�n"] = "Contratación",
+                ["Construcci�n"] = "Construcción",
+                ["Pavimentaci�n"] = "Pavimentación",
+                ["Adquisici�n"] = "Adquisición"
+            };
+
+            foreach (var reemplazo in reemplazos)
+                limpio = limpio.Replace(reemplazo.Key, reemplazo.Value, StringComparison.OrdinalIgnoreCase);
+
+            if (limpio.StartsWith("Detalles Licitación", StringComparison.OrdinalIgnoreCase))
+            {
+                var objeto = Regex.Match(limpio,
+                    @"(BACHEO|PAVIMENTACI[ÓO]N|REPAVIMENTACI[ÓO]N|CONSTRUCCI[ÓO]N|RECONSTRUCCI[ÓO]N|CICLOV[ÍI]A).+?(?=\s+D[ií]a\s+Hora|$)",
+                    RegexOptions.IgnoreCase);
+                if (objeto.Success) limpio = objeto.Value;
+            }
+
+            limpio = Regex.Replace(limpio, @"\s+", " ");
+            return limpio.Trim(' ', '-', ':');
+        }
+
+        private static List<ObraDetalleDto> DeduplicarLlamados(IEnumerable<ObraDetalleDto> obras)
+        {
+            return obras
+                .GroupBy(ClaveContratacion, StringComparer.OrdinalIgnoreCase)
+                .Select(grupo =>
+                {
+                    var items = grupo.ToList();
+                    var principal = items
+                        .OrderByDescending(PuntajeDetalle)
+                        .ThenByDescending(o => o.EventoId)
+                        .First();
+
+                    principal.EventosRelacionados = items
+                        .SelectMany(o => o.EventosRelacionados.Count > 0
+                            ? o.EventosRelacionados.AsEnumerable()
+                            : new[] { o.EventoId }.AsEnumerable())
+                        .Append(principal.EventoId)
+                        .Distinct()
+                        .OrderBy(id => id)
+                        .ToList();
+
+                    principal.Documentos = items.SelectMany(o => o.Documentos)
+                        .GroupBy(d => d.Url, StringComparer.OrdinalIgnoreCase)
+                        .Select(g => g.First()).ToList();
+                    principal.Tramos = items.SelectMany(o => o.Tramos)
+                        .GroupBy(ObtenerClaveTramo, StringComparer.OrdinalIgnoreCase)
+                        .Select(g => g.OrderByDescending(t =>
+                            t.LatitudInicio.HasValue && t.LatitudFin.HasValue).First())
+                        .ToList();
+                    principal.Ubicaciones = items.SelectMany(o => o.Ubicaciones)
+                        .GroupBy(u => u.Descripcion, StringComparer.OrdinalIgnoreCase)
+                        .Select(g => g.First()).ToList();
+
+                    return principal;
+                })
+                .OrderByDescending(o => o.FechaApertura)
+                .ThenByDescending(o => o.EventoId)
+                .ToList();
+        }
+
+        private static string ClaveContratacion(ObraDetalleDto obra)
+        {
+            var organismo = NormalizarClave(obra.Organismo);
+            var expediente = NormalizarClave(obra.Expediente);
+            var licitacion = NormalizarClave(obra.Licitacion);
+            if (licitacion.Length > 0) return $"licitacion|{organismo}|{licitacion}";
+            if (expediente.Length > 0) return $"expediente|{organismo}|{expediente}";
+            return $"evento|{obra.EventoId}";
+        }
+
+        private static int PuntajeDetalle(ObraDetalleDto obra) =>
+            (obra.Nombre.Contains("Detalle", StringComparison.OrdinalIgnoreCase) ? 0 : 20) +
+            obra.Documentos.Count + obra.Tramos.Count * 3 + obra.Ubicaciones.Count * 2 +
+            (obra.PresupuestoOficial.HasValue ? 3 : 0) +
+            (!string.IsNullOrWhiteSpace(obra.Expediente) ? 2 : 0);
+
+        private static string NormalizarClave(string texto)
+        {
+            var normalizado = (texto ?? "").Normalize(NormalizationForm.FormD);
+            var sinAcentos = new string(normalizado
+                .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                .ToArray());
+            return Regex.Replace(sinAcentos.ToLowerInvariant(), @"[^a-z0-9]+", "").Trim();
         }
         
         private static string DetectarTipoGeometria(string ubicacion)
@@ -1208,96 +1430,50 @@ namespace ReclamosMDP.API.Services
 
         private static bool PareceObra(string texto)
         {
-            texto = texto.ToLowerInvariant();
-
-            // Palabras que claramente indican compras
-            // o provisión de materiales/equipamiento.
-            string[] excluir =
+            texto = NormalizarParaBusqueda(texto);
+            var incluir = new[]
             {
-                "adquisicion",
-                "adquisición",
-                "compra",
-                "provisión",
-                "provision",
-                "vehiculo",
-                "vehículo",
-                "cemento",
-                "arena",
-                "piedra",
-                "caños",
-                "caños",
-                "elementos de desgaste",
-                "papel",
-
-                // Servicios / mantenimiento que no
-                // queremos mostrar como obra pública
-                "ascensor",
-                "ascensores",
-                "enterratorio",
-                "enterramiento",
-                "excavación mecanizada de pozos",
-                "excavacion mecanizada de pozos",
-
-                    "adq ",
-                    "adq.",
-                    "compra",
-                    "provision",
-                    "provisión",
-                    "materiales de construccion",
-                    "materiales de construcción",
-                    "articulos de construccion",
-                    "artículos de construcción"
+                "bacheo", "pavimentacion", "repavimentacion", "fresado", "recapado",
+                "construccion", "reconstruccion", "refaccion", "remodelacion",
+                "puesta en valor", "ampliacion", "cordon cuneta", "vereda", "rampa",
+                "ciclovia", "plaza", "parque industrial", "equipamiento comunitario",
+                "desague", "infraestructura vial", "red vial", "obra publica", "obras publicas"
             };
 
-            if (excluir.Any(palabra => texto.Contains(palabra)))
+            if (!incluir.Any(texto.Contains)) return false;
+
+            var esCompra = Regex.IsMatch(texto,
+                @"\b(adquisicion|adqusicion|compra|adq\.?|alquiler|provision)\b");
+            var bienes = new[]
             {
+                "material", "cemento", "arena", "piedra", "cano", "vehiculo",
+                "maquinaria", "repuesto", "elemento de desgaste", "papel",
+                "pintura", "luminaria", "mezcla asfaltica", "hormigon elaborado",
+                "aceite", "lubricante"
+            };
+            var incluyeEjecucion = new[]
+            {
+                "instalacion", "ejecucion", "construccion", "reconstruccion",
+                "reparacion", "refaccion", "pavimentacion", "bacheo", "fresado"
+            }.Any(texto.Contains);
+
+            if (texto.Contains("materiales de construccion") ||
+                texto.Contains("articulos de construccion") ||
+                (esCompra && (texto.Contains("mezcla asfaltica") ||
+                              texto.Contains("hormigon elaborado"))))
                 return false;
-            }
 
-            // Términos que sí representan una intervención
-            // física sobre la ciudad.
-            string[] incluir =
-            {
-                "bacheo",
-                "pavimentacion",
-                "pavimentación",
-                "repavimentacion",
-                "repavimentación",
-                "fresado",
-                "recapado",
+            return !(esCompra && bienes.Any(texto.Contains) && !incluyeEjecucion);
+        }
 
-                "construccion",
-                "construcción",
-                "reconstruccion",
-                "reconstrucción",
-
-                "cordon cuneta",
-                "cordón cuneta",
-
-                "vereda",
-                "veredas",
-
-                "rampa",
-                "rampas",
-
-                "ciclovia",
-                "ciclovía",
-
-                "plaza",
-                "parque",
-
-                "desagüe",
-                "desague",
-
-                "infraestructura vial"
-            };
-
-            return incluir.Any(
-                palabra => texto.Contains(palabra)
-            );
-
-
-
+        private static string NormalizarParaBusqueda(string texto)
+        {
+            var normalizado = (texto ?? "").Normalize(NormalizationForm.FormD);
+            return new string(normalizado
+                    .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                    .ToArray())
+                .Normalize(NormalizationForm.FormC)
+                .ToLowerInvariant();
         }
 
         private async Task<string> ObtenerTextoPdf(string urlPdf, int eventoId)
@@ -1923,7 +2099,7 @@ namespace ReclamosMDP.API.Services
             var licitacion =
                 Regex.Match(
                     texto,
-                    @"LICITACI[ÓO]N\s+(P[ÚU]BLICA|PRIVADA)\s+(?:N[º°]?\s*)?(\d+)\s*/\s*(\d{2,4})",
+                    @"LICITACI[ÓO]N\s+(P[ÚU]BLICA|PRIVADA)(?:\s+EMVIAL)?\s+(?:N[º°]?\s*)?(\d+)\s*[/\-]\s*(\d{2,4})",
                     RegexOptions.IgnoreCase
                 );
 
@@ -1938,6 +2114,11 @@ namespace ReclamosMDP.API.Services
 
                 var anio =
                     licitacion.Groups[3].Value;
+
+                if (anio.Length == 2)
+                {
+                    anio = $"20{anio}";
+                }
 
 
                 var nombreTipo =

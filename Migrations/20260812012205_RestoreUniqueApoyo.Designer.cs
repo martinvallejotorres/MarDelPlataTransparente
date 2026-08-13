@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReclamosMDP.API.Data;
@@ -11,9 +12,11 @@ using ReclamosMDP.API.Data;
 namespace ReclamosMDP.API.Migrations
 {
     [DbContext(typeof(ReclamosDbContext))]
-    partial class ReclamosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260812012205_RestoreUniqueApoyo")]
+    partial class RestoreUniqueApoyo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -293,171 +296,6 @@ namespace ReclamosMDP.API.Migrations
                     b.ToTable("HistorialEstados");
                 });
 
-            modelBuilder.Entity("ReclamosMDP.API.Models.ObraPublica", b =>
-                {
-                    b.Property<int>("EventoId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EventoId"));
-
-                    b.Property<DateTime>("ActualizadaUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("AnioFuente")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("DocumentosJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("EventosRelacionadosJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Expediente")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<DateTime?>("FechaApertura")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("FrentesTrabajo")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FuenteUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<decimal?>("GarantiaOferta")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Licitacion")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<int?>("MesFuente")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Organismo")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Plazo")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<decimal?>("PresupuestoOficial")
-                        .HasColumnType("numeric");
-
-                    b.Property<double?>("SuperficieM2")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("TipoGeometria")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("UbicacionTexto")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UbicacionesJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("EventoId");
-
-                    b.HasIndex("AnioFuente");
-
-                    b.ToTable("ObrasPublicas");
-                });
-
-            modelBuilder.Entity("ReclamosMDP.API.Models.ObraTramo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Calle")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("Desde")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("Hasta")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<double?>("LatitudFin")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("LatitudInicio")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("LongitudFin")
-                        .HasColumnType("double precision");
-
-                    b.Property<double?>("LongitudInicio")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("ObraEventoId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ObraEventoId", "Calle", "Desde", "Hasta")
-                        .IsUnique();
-
-                    b.ToTable("ObrasTramos");
-                });
-
-            modelBuilder.Entity("ReclamosMDP.API.Models.ObrasAnioSincronizacion", b =>
-                {
-                    b.Property<int>("Anio")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Anio"));
-
-                    b.Property<int>("Cantidad")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CompletadaUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Anio");
-
-                    b.ToTable("ObrasAniosSincronizados");
-                });
-
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
                     b.Property<int>("Id")
@@ -606,17 +444,6 @@ namespace ReclamosMDP.API.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("ReclamosMDP.API.Models.ObraTramo", b =>
-                {
-                    b.HasOne("ReclamosMDP.API.Models.ObraPublica", "Obra")
-                        .WithMany("Tramos")
-                        .HasForeignKey("ObraEventoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Obra");
-                });
-
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>
                 {
                     b.HasOne("ReclamosMDP.API.Models.ApplicationUser", "Administrador")
@@ -635,11 +462,6 @@ namespace ReclamosMDP.API.Migrations
             modelBuilder.Entity("ReclamosMDP.API.Models.ApplicationUser", b =>
                 {
                     b.Navigation("Apoyos");
-                });
-
-            modelBuilder.Entity("ReclamosMDP.API.Models.ObraPublica", b =>
-                {
-                    b.Navigation("Tramos");
                 });
 
             modelBuilder.Entity("ReclamosMDP.API.Models.Reclamo", b =>

@@ -202,7 +202,12 @@ async function cargarReclamos() {
         // ==========================
 
         const reclamosVisibles = reclamos.filter(
-            reclamo => reclamo.estado !== "Rechazado"
+            reclamo =>
+                reclamo.estado !== "Rechazado" &&
+                Number.isFinite(reclamo.latitud) &&
+                Number.isFinite(reclamo.longitud) &&
+                reclamo.latitud >= -38.20 && reclamo.latitud <= -37.70 &&
+                reclamo.longitud >= -57.85 && reclamo.longitud <= -57.30
         );
 
 
@@ -468,11 +473,7 @@ async function enviarReclamo() {
 
     try {
 
-        const token =
-            localStorage.getItem("token");
-
-
-        if (!token) {
+        if (!obtenerUsuario()) {
 
             mostrarToast(
                 "Iniciá sesión",
@@ -488,12 +489,7 @@ async function enviarReclamo() {
             "/api/reclamos",
             {
                 method: "POST",
-
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                },
-
+                credentials: "same-origin",
                 body: formData
             }
         );
@@ -581,9 +577,9 @@ async function enviarReclamo() {
 }
 
 
-// Cargar al iniciar
-
-cargarReclamos();
+document
+    .getElementById("btnEnviarReclamo")
+    ?.addEventListener("click", enviarReclamo);
 
 
 

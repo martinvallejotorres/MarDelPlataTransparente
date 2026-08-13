@@ -3,42 +3,47 @@ const API_URL = "/api";
 
 async function apiFetch(endpoint, options = {}) {
 
-    const token = localStorage.getItem("token");
-    const headers = {
-        "Content-Type": "application/json",
-        ...options.headers
-    };
+    const headers = { ...options.headers };
 
-    if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+    if (options.body && !(options.body instanceof FormData)) {
+        headers["Content-Type"] ??= "application/json";
     }
+
     const response = await fetch(API_URL + endpoint, {
         ...options,
-        headers
+        headers,
+        credentials: "same-origin"
     });
 
     if (!response.ok) {
 
-        let mensaje = "Ocurrió un error.";
+        let mensaje = response.status === 401
+            ? "La sesión venció o no está iniciada."
+            : "Ocurrió un error.";
+
+        const contenido = await response.text();
 
         try {
-
-            const data = await response.json();
+            const data = contenido ? JSON.parse(contenido) : {};
 
             mensaje =
                 data.mensaje ||
+                data.error ||
                 data.title ||
-                JSON.stringify(data);
+                mensaje;
 
         }
         catch {
-
-            mensaje = await response.text();
+            mensaje = contenido || mensaje;
 
         }
 
         throw new Error(mensaje);
 
+    }
+
+    if (response.status === 204) {
+        return null;
     }
 
     return await response.json();

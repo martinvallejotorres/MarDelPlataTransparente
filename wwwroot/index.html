@@ -8,13 +8,13 @@
     <title>Mar del Plata Transparente</title>
 
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <link rel="stylesheet"
-          href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+          href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 
     <link rel="stylesheet"
-          href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
+          href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -26,13 +26,13 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/app.css?v=20260813">
 
     <link rel="stylesheet" href="css/variables.css">
 
     <link rel="stylesheet" href="css/componentes.css">
 
-    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/map.css?v=20260813b">
 
     <link rel="stylesheet" href="css/detallePanel.css">
 
@@ -962,7 +962,7 @@
                 <div class="modal-footer">
 
                     <button class="btn btn-primary"
-                            onclick="enviarReclamo()">
+                            id="btnEnviarReclamo">
 
                         Crear Reclamo
 
@@ -1194,7 +1194,7 @@
     </div>
 
 
-    <section id="seccionObras" class="seccion-obras-publicas">
+    <section id="seccionDatosPublicos" class="seccion-obras-publicas">
         <div class="container">
 
             <div class="seccion-obras-header">
@@ -1203,63 +1203,322 @@
                         Datos públicos
                     </span>
 
-                    <h2>
-                        Explorá las obras públicas
-                    </h2>
+                    <h2 id="tituloCategoriaDatos">Explorá las obras públicas</h2>
 
-                    <p>
+                    <p id="descripcionCategoriaDatos">
                         Consultá obras relevadas por año,
                         su estado, presupuesto y ubicación.
                     </p>
                 </div>
 
-                <div class="selector-anio-obras">
-                    <label for="anioObras">
-                        Año
-                    </label>
-
-                    <select id="anioObras">
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
-                        <option value="2023">2023</option>
+                <div class="selector-categoria-datos">
+                    <label for="categoriaDatosSelector">Área de información</label>
+                    <select id="categoriaDatosSelector" aria-label="Seleccionar categoría de datos públicos">
+                        <option value="infraestructura-obras-publicas">Obras Públicas</option>
+                        <option value="administracion-publica">Administración Pública</option>
                     </select>
                 </div>
             </div>
 
-
-            <div class="resumen-obras-anio">
-
-                <div>
-                    <span>Obras relevadas</span>
-                    <strong id="cantidadObrasAnio">
-                        -
-                    </strong>
+            <div id="panelCategoriaObras" class="panel-categoria-datos">
+                <div class="toolbar-categoria-datos">
+                    <div class="selector-anio-obras">
+                        <label for="anioObras">Año</label>
+                        <select id="anioObras">
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <span>Presupuesto oficial</span>
-                    <strong id="presupuestoObrasAnio">
-                        -
-                    </strong>
+                <div class="filtros-historial-obras">
+                    <input id="buscarObraHistorial" type="search"
+                           placeholder="Buscar obra, calle, expediente o licitación"
+                           aria-label="Buscar obras">
+                    <select id="filtroOrganismoObras" aria-label="Filtrar por organismo">
+                        <option value="todos">Todos los organismos</option>
+                    </select>
+                    <select id="filtroEstadoObras" aria-label="Filtrar por estado">
+                        <option value="todos">Todos los estados</option>
+                    </select>
                 </div>
 
+                <div class="resumen-obras-anio">
+
+                    <div>
+                        <span>Obras relevadas</span>
+                        <strong id="cantidadObrasAnio">-</strong>
+                    </div>
+
+                    <div>
+                        <span>Presupuesto oficial</span>
+                        <strong id="presupuestoObrasAnio">-</strong>
+                    </div>
+
+                    <div>
+                        <span>Tramos georreferenciados</span>
+                        <strong id="tramosObrasAnio">-</strong>
+                    </div>
+
+                    <div>
+                        <span>Cobertura en el mapa</span>
+                        <strong id="coberturaMapaObrasAnio">-</strong>
+                    </div>
+                </div>
+
+
+
+                <p id="resultadoFiltrosObras" class="nota-fuente-administracion" aria-live="polite"></p>
+
+                <div class="graficos-administracion graficos-obras-publicas">
+                    <article>
+                        <h3>Evolución de obras y presupuesto</h3>
+                        <div class="grafico-administracion-contenedor"><canvas id="graficoTendenciaObras"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Distribución por estado</h3>
+                        <div class="grafico-administracion-contenedor"><canvas id="graficoEstadosObras"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Presupuesto por organismo</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoOrganismosObras"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Cobertura cartográfica</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoCoberturaObras"></canvas></div>
+                    </article>
+                </div>
+
+                <div class="administracion-mapa-aviso obras-mapa-aviso">
+                    <i class="fa-solid fa-road"></i>
+                    <div>
+                        <strong>Obras y tramos en el mapa</strong>
+                        <span>Mostrá el resultado filtrado y activá las líneas de calles con extremos georreferenciados.</span>
+                    </div>
+                    <div class="acciones-mapa-obras">
+                        <button id="mostrarObrasFiltradasMapa" type="button">Ver resultado</button>
+                        <button id="activarTramosObrasDashboard" type="button">Mostrar tramos</button>
+                    </div>
+                </div>
+
+                <p class="nota-estados-obras">
+                    Los estados se obtienen de los documentos oficiales publicados. Si una adjudicación,
+                    acta de inicio o recepción no fue publicada en la fuente consultada, no se presume.
+                </p>
+
+                <div id="comparacionTramosHistoricos" class="comparacion-tramos-historicos" hidden></div>
+
+                <div id="listaObrasAnio" class="lista-obras-anio">
+                    <p class="obras-cargando">Cargando obras...</p>
+                </div>
             </div>
 
+            <div id="panelCategoriaAdministracion" class="panel-categoria-datos" hidden>
+                <div class="filtros-administracion">
+                    <div>
+                        <label for="anioAdministracion">Año del corte</label>
+                        <select id="anioAdministracion">
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="plantaAdministracion">Tipo de planta</label>
+                        <select id="plantaAdministracion">
+                            <option value="todas">Todas</option>
+                            <option value="P">Permanente</option>
+                            <option value="T">Temporaria</option>
+                            <option value="C">Contratada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cargoAdministracion">Buscar cargo</label>
+                        <input id="cargoAdministracion" type="search" placeholder="Ej. enfermero, inspector...">
+                    </div>
+                </div>
 
-            <div id="listaObrasAnio"
-                 class="lista-obras-anio">
-                <p class="obras-cargando">
-                    Cargando obras...
+                <div id="resumenAdministracion" class="resumen-administracion" aria-live="polite">
+                    <div><span>Agentes</span><strong id="totalAgentesAdministracion">-</strong></div>
+                    <div><span>Designaciones</span><strong id="totalDesignacionesAdministracion">-</strong></div>
+                    <div><span>Planta permanente</span><strong id="permanentesAdministracion">-</strong></div>
+                    <div><span>Planta temporaria</span><strong id="temporariosAdministracion">-</strong></div>
+                </div>
+
+                <p id="periodoAdministracion" class="nota-fuente-administracion"></p>
+
+                <div class="graficos-administracion">
+                    <article>
+                        <h3>Evolución de agentes y designaciones</h3>
+                        <div class="grafico-administracion-contenedor"><canvas id="graficoTendenciaAdministracion"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Distribución por planta</h3>
+                        <div class="grafico-administracion-contenedor"><canvas id="graficoPlantaAdministracion"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Cargos más frecuentes</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoCargosAdministracion"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Cargas horarias informadas</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoHorasAdministracion"></canvas></div>
+                    </article>
+                </div>
+
+                <div class="administracion-mapa-aviso">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <div>
+                        <strong>Delegaciones municipales en el mapa</strong>
+                        <span>Activá “Delegaciones municipales” en el selector de capas para ver sus límites oficiales.</span>
+                    </div>
+                    <button id="activarDelegacionesAdministracion" type="button">Mostrar en mapa</button>
+                </div>
+
+                <p class="nota-fuente-administracion">
+                    Los cálculos son agregados y no muestran nombres ni legajos individuales.
+                    Fuente: Portal de Datos Abiertos MGP, Dirección de Recursos Humanos.
+                </p>
+            </div>
+
+            <div id="panelCategoriaMovilidad" class="panel-categoria-datos" hidden>
+                <div class="filtros-administracion filtros-movilidad">
+                    <div>
+                        <label for="anioMovilidad">Año</label>
+                        <select id="anioMovilidad">
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="empresaMovilidad">Empresa</label>
+                        <select id="empresaMovilidad">
+                            <option value="todas">Todas las empresas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="lineaMovilidad">Línea o ramal</label>
+                        <select id="lineaMovilidad">
+                            <option value="todas">Todas las líneas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="resumen-administracion resumen-movilidad" aria-live="polite">
+                    <div><span>Pasajeros de la red</span><strong id="pasajerosMovilidad">-</strong></div>
+                    <div><span>Kilómetros recorridos</span><strong id="kilometrosMovilidad">-</strong></div>
+                    <div><span>Recaudación informada</span><strong id="recaudacionMovilidad">-</strong></div>
+                    <div><span>Flota registrada</span><strong id="flotaMovilidad">-</strong></div>
+                </div>
+
+                <p id="periodoMovilidad" class="nota-fuente-administracion"></p>
+
+                <div class="graficos-administracion graficos-movilidad">
+                    <article>
+                        <h3>Pasajeros por mes y tipo de boleto</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoPasajerosMovilidad"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Kilómetros e IPK mensual</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoRecorridoMovilidad"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Servicios diarios por línea</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoFrecuenciasMovilidad"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Flota por empresa</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoFlotaMovilidad"></canvas></div>
+                    </article>
+                </div>
+
+                <div class="administracion-mapa-aviso movilidad-mapa-aviso">
+                    <i class="fa-solid fa-bus-simple"></i>
+                    <div>
+                        <strong><span id="cantidadLineasMovilidad">-</span> líneas disponibles en el mapa</strong>
+                        <span>Filtrá por empresa o línea y activá recorridos, paradas o las ciclovías documentadas como obras.</span>
+                    </div>
+                    <div class="acciones-mapa-obras acciones-mapa-movilidad">
+                        <button id="activarRecorridosMovilidad" type="button">Recorridos</button>
+                        <button id="activarParadasMovilidad" type="button">Paradas</button>
+                        <button id="activarCicloviasMovilidad" type="button">Ciclovías</button>
+                    </div>
+                </div>
+
+                <p class="nota-fuente-administracion">
+                    Fuente: Portal de Datos Abiertos MGP, Subsecretaría de Tránsito y Transporte.
+                    La última serie estadística publicada corresponde a 2025. Los recorridos y paradas son recursos cartográficos oficiales de actualización irregular.
+                </p>
+            </div>
+
+            <div id="panelCategoriaMedioAmbiente" class="panel-categoria-datos" hidden>
+                <div class="filtros-administracion filtros-ambiente">
+                    <div>
+                        <label for="anioMedioAmbiente">Año</label>
+                        <select id="anioMedioAmbiente">
+                            <option value="2025">2025 · disposición parcial</option>
+                            <option value="2024">2024 · cobertura completa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="resumen-administracion resumen-ambiente" aria-live="polite">
+                    <div><span>Residuos dispuestos</span><strong id="residuosAmbiente">-</strong></div>
+                    <div><span>Material recuperado</span><strong id="recuperadoAmbiente">-</strong></div>
+                    <div><span>Muestras de agua</span><strong id="muestrasAguaAmbiente">-</strong></div>
+                    <div><span>Playas muestreadas</span><strong id="playasAmbiente">-</strong></div>
+                </div>
+
+                <p id="periodoMedioAmbiente" class="nota-fuente-administracion"></p>
+
+                <div class="graficos-administracion graficos-ambiente">
+                    <article>
+                        <h3>Disposición mensual de residuos</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoResiduosAmbiente"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Entrada y recuperación de materiales</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoRecuperacionAmbiente"></canvas></div>
+                    </article>
+                    <article>
+                        <h3>Calidad recreativa por playa</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoPlayasAmbiente"></canvas></div>
+                    </article>
+                    <article class="estado-ambiental-card">
+                        <h3>Indicadores del período</h3>
+                        <div class="indicadores-ambientales">
+                            <div><span>Camiones descargados</span><strong id="camionesAmbiente">-</strong></div>
+                            <div><span>Tasa de recuperación</span><strong id="tasaRecuperacionAmbiente">-</strong></div>
+                            <div><span>E. coli detectable</span><strong id="ecoliAmbiente">-</strong></div>
+                            <div><span>Playas sobre referencia</span><strong id="playasReferenciaAmbiente">-</strong></div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="administracion-mapa-aviso ambiente-mapa-aviso">
+                    <i class="fa-solid fa-leaf"></i>
+                    <div>
+                        <strong>Información ambiental en el mapa</strong>
+                        <span>Consultá arroyos, puntos históricos de muestreo de agua y estaciones de aire y olores publicados por el municipio.</span>
+                    </div>
+                    <div class="acciones-mapa-obras acciones-mapa-ambiente">
+                        <button id="activarArroyosAmbiente" type="button">Arroyos</button>
+                        <button id="activarPuntosAguaAmbiente" type="button">Muestreo de agua</button>
+                        <button id="activarEstacionesAmbiente" type="button">Estaciones</button>
+                    </div>
+                </div>
+
+                <p class="nota-fuente-administracion">
+                    Fuente: Portal de Datos Abiertos MGP, EMSUR y Obras Sanitarias Mar del Plata S.E.
+                    Cada indicador respeta el período efectivamente publicado; no se completan meses ni resultados faltantes.
                 </p>
             </div>
 
         </div>
     </section>
-
-
-
-    
 
     <!-- ================= FOOTER ================= -->
 
@@ -1318,13 +1577,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+
+    <script src="js/security.js"></script>
 
     <script src="js/ui.js"></script>
 
@@ -1334,11 +1595,19 @@
 
     <script src="js/app.js"></script>
 
-    <script src="/js/comisarias.js"></script>
+    <script src="/js/comisarias.js?v=20260813b"></script>
 
     <script src="/js/obras.js"></script>
 
     <script src="/js/historialObras.js"></script>
+
+    <script src="/js/catalogoDatos.js?v=20260813b"></script>
+
+    <script src="/js/administracionPublica.js"></script>
+
+    <script src="/js/movilidadTransporte.js?v=20260813"></script>
+
+    <script src="/js/medioAmbiente.js?v=20260813b"></script>
 
     <script src="js/detallePanel.js"></script>
 
@@ -1347,8 +1616,6 @@
     <script src="js/formulario.js"></script>
 
     <script src="js/dashboard.js"></script>
-
-    <script src="/js/proximamente.js"></script>
 
     <script src="/js/homeRefresh.js"></script>
 
