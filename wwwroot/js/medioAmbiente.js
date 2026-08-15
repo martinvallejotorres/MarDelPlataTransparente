@@ -65,14 +65,17 @@ async function cargarMedioAmbiente() {
 function renderizarMedioAmbiente() {
     const datos = medioAmbienteDatos;
     if (!datos) return;
-    document.getElementById("residuosAmbiente").textContent = `${formatoNumeroAmbiente(datos.residuosDispuestosToneladas)} t`;
+    renderizarEstadoPublicacion("estadoPublicacionAmbiente", datos);
+    const sinSerie = datos.esParcial && !datos.serieOperativaPublicada;
+    document.querySelectorAll(".serie-ambiente-grafico").forEach(x => { x.hidden = sinSerie; });
+    document.getElementById("residuosAmbiente").textContent = sinSerie ? "Sin publicación" : `${formatoNumeroAmbiente(datos.residuosDispuestosToneladas)} t`;
     document.getElementById("recuperadoAmbiente").textContent = datos.materialRecuperadoToneladas
         ? `${formatoNumeroAmbiente(datos.materialRecuperadoToneladas)} t` : "Sin publicación";
     document.getElementById("muestrasAguaAmbiente").textContent = datos.muestrasAgua
         ? formatoNumeroAmbiente(datos.muestrasAgua) : "Sin publicación";
     document.getElementById("playasAmbiente").textContent = datos.playasMuestreadas
         ? formatoNumeroAmbiente(datos.playasMuestreadas) : "Sin publicación";
-    document.getElementById("camionesAmbiente").textContent = formatoNumeroAmbiente(datos.camionesDescargados);
+    document.getElementById("camionesAmbiente").textContent = sinSerie ? "Sin publicación" : formatoNumeroAmbiente(datos.camionesDescargados);
     document.getElementById("tasaRecuperacionAmbiente").textContent = datos.materialIngresadoToneladas
         ? `${Number(datos.tasaRecuperacion).toLocaleString("es-AR", { maximumFractionDigits: 1 })}%` : "Sin publicación";
     document.getElementById("ecoliAmbiente").textContent = datos.muestrasAgua

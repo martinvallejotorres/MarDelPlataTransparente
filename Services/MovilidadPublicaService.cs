@@ -25,17 +25,37 @@ public class MovilidadPublicaService
 
     private readonly HttpClient _http;
     private readonly IMemoryCache _cache;
+    private readonly PortalDatosAbiertosService _portalDatos;
 
-    public MovilidadPublicaService(HttpClient http, IMemoryCache cache)
+    public MovilidadPublicaService(HttpClient http, IMemoryCache cache, PortalDatosAbiertosService portalDatos)
     {
         _http = http;
         _cache = cache;
+        _portalDatos = portalDatos;
     }
 
-    public IReadOnlyCollection<int> ObtenerAnios() => Recursos.Keys.OrderDescending().ToArray();
+    public IReadOnlyCollection<int> ObtenerAnios() => [2026, .. Recursos.Keys.OrderDescending()];
 
     public async Task<MovilidadPublicaDto> ObtenerResumen(int anio)
     {
+        if (anio == 2026)
+        {
+            var publicaciones = await _portalDatos.DescubrirRecursos(2026, "movilidad-y-transporte-1");
+            var lineas2026 = (await LeerCsv(LineasCsv)).Select(f => new LineaTransporteDto
+            {
+                Empresa = Valor(f, "Empresa"), Linea = Valor(f, "Línea", "Linea")
+            }).Where(x => x.Linea.Length > 0).OrderBy(x => x.Linea, StringComparer.OrdinalIgnoreCase).ToList();
+            return new MovilidadPublicaDto
+            {
+                Anio = 2026, EsParcial = true, SerieOperativaPublicada = false,
+                Periodo = "2026 parcial · registros automotores publicados hasta enero",
+                FechaCorte = publicaciones.FirstOrDefault()?.Cobertura ?? "Sin publicaciones 2026 detectadas",
+                AvisoPublicacion = "La estadística de transporte público 2026 aún no fue publicada. Los registros automotores se muestran como actividad oficial separada.",
+                PublicacionesParciales = publicaciones, Lineas = lineas2026,
+                CantidadLineas = lineas2026.Select(x => x.Linea).Distinct(StringComparer.OrdinalIgnoreCase).Count(), FuenteUrl = Dataset
+            };
+        }
+
         if (!Recursos.TryGetValue(anio, out var recursos))
             throw new ArgumentOutOfRangeException(nameof(anio), "No hay datos de movilidad para ese año.");
 

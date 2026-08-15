@@ -51,6 +51,8 @@ builder.Services.AddSingleton<CatalogoDatosService>();
 builder.Services.AddHttpClient<AdministracionPublicaService>();
 builder.Services.AddHttpClient<MovilidadPublicaService>();
 builder.Services.AddHttpClient<MedioAmbienteService>();
+builder.Services.AddHttpClient<SaludServiciosSocialesService>();
+builder.Services.AddHttpClient<PortalDatosAbiertosService>();
 
 builder.Services.ConfigureHttpClientDefaults(http =>
 {
@@ -202,7 +204,10 @@ builder.Services.AddRateLimiter(options =>
             httpContext.Connection.RemoteIpAddress?.ToString() ?? "local",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 20,
+                // La portada consulta simultáneamente catálogo, obras, seguridad
+                // y capas. El límite anterior (20/min) bloqueaba una navegación
+                // normal después de uno o dos cambios de filtro.
+                PermitLimit = 180,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true

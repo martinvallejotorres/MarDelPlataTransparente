@@ -610,6 +610,18 @@ const ControlDatosCiudad =
                         <span>Estaciones de aire y olores</span>
                     </label>
 
+                    <div class="control-datos-separador">
+                        SALUD Y SERVICIOS SOCIALES
+                    </div>
+
+                    <label class="control-datos-opcion">
+                        <input type="checkbox" id="toggleCentrosSalud">
+                        <span class="control-datos-icono salud">
+                            <i class="fa-solid fa-house-medical"></i>
+                        </span>
+                        <span>Centros municipales de salud</span>
+                    </label>
+
                 </div>
             `;
 

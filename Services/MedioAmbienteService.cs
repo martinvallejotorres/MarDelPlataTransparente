@@ -21,19 +21,36 @@ public class MedioAmbienteService
 
     private readonly HttpClient _http;
     private readonly IMemoryCache _cache;
+    private readonly PortalDatosAbiertosService _portalDatos;
 
-    public MedioAmbienteService(HttpClient http, IMemoryCache cache)
+    public MedioAmbienteService(HttpClient http, IMemoryCache cache, PortalDatosAbiertosService portalDatos)
     {
         _http = http;
         _cache = cache;
+        _portalDatos = portalDatos;
     }
 
-    public IReadOnlyCollection<int> ObtenerAnios() => [2025, 2024];
+    public IReadOnlyCollection<int> ObtenerAnios() => [2026, 2025, 2024];
 
     public async Task<MedioAmbienteDto> ObtenerResumen(int anio)
     {
         if (!ObtenerAnios().Contains(anio))
             throw new ArgumentOutOfRangeException(nameof(anio), "No hay datos ambientales para ese año.");
+
+        if (anio == 2026)
+        {
+            var publicaciones = await _portalDatos.DescubrirRecursos(2026, "medio-ambiente-27");
+            return new MedioAmbienteDto
+            {
+                Anio = 2026, EsParcial = true, SerieOperativaPublicada = false,
+                FechaCorte = publicaciones.FirstOrDefault()?.Cobertura ?? "Sin serie estadística 2026 publicada",
+                Cobertura = "2026 parcial · aún no se publicaron residuos, recuperación, agua o playas para este período",
+                AvisoPublicacion = publicaciones.Count > 0
+                    ? "Se detectaron recursos ambientales oficiales 2026 y se muestran como parciales."
+                    : "El municipio todavía no publicó una serie ambiental 2026 comparable. Se conserva 2025 como último período disponible.",
+                PublicacionesParciales = publicaciones, FuenteUrl = Dataset
+            };
+        }
 
         return await _cache.GetOrCreateAsync($"medio-ambiente-{anio}", async entry =>
         {

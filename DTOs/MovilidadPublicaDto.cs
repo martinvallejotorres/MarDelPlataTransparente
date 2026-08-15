@@ -15,6 +15,11 @@ public class MovilidadPublicaDto
     public List<FlotaEmpresaDto> FlotaPorEmpresa { get; set; } = [];
     public List<LineaTransporteDto> Lineas { get; set; } = [];
     public string FuenteUrl { get; set; } = "";
+    public bool EsParcial { get; set; }
+    public bool SerieOperativaPublicada { get; set; } = true;
+    public string FechaCorte { get; set; } = "";
+    public string AvisoPublicacion { get; set; } = "";
+    public List<PublicacionParcialDto> PublicacionesParciales { get; set; } = [];
 }
 
 public class MesMovilidadDto

@@ -31,6 +31,7 @@ namespace ReclamosMDP.API.Controllers
         private readonly AdministracionPublicaService _administracionPublicaService;
         private readonly MovilidadPublicaService _movilidadPublicaService;
         private readonly MedioAmbienteService _medioAmbienteService;
+        private readonly SaludServiciosSocialesService _saludServiciosSocialesService;
         private readonly IWebHostEnvironment _environment;
 
         public DatosPublicosController(
@@ -42,6 +43,7 @@ namespace ReclamosMDP.API.Controllers
             AdministracionPublicaService administracionPublicaService,
             MovilidadPublicaService movilidadPublicaService,
             MedioAmbienteService medioAmbienteService,
+            SaludServiciosSocialesService saludServiciosSocialesService,
             IWebHostEnvironment environment
         )
         {
@@ -58,6 +60,7 @@ namespace ReclamosMDP.API.Controllers
             _administracionPublicaService = administracionPublicaService;
             _movilidadPublicaService = movilidadPublicaService;
             _medioAmbienteService = medioAmbienteService;
+            _saludServiciosSocialesService = saludServiciosSocialesService;
             _environment = environment;
         }
 
@@ -574,7 +577,7 @@ namespace ReclamosMDP.API.Controllers
             [FromQuery] bool actualizar = false)
         {
             if (actualizar && !_environment.IsDevelopment() &&
-                !(User.Identity?.IsAuthenticated == true && User.IsInRole("Admin")))
+                !(User.Identity?.IsAuthenticated == true && User.IsInRole("Administrador")))
             {
                 return Forbid();
             }
@@ -770,6 +773,35 @@ namespace ReclamosMDP.API.Controllers
             {
                 Console.WriteLine($"ERROR PUNTOS DE AGUA -> {ex}");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "No se pudieron obtener los puntos de muestreo de agua." });
+            }
+        }
+
+        [HttpGet("salud-servicios-sociales")]
+        public async Task<IActionResult> ObtenerSaludServiciosSociales([FromQuery] int anio = 2025)
+        {
+            if (!_saludServiciosSocialesService.ObtenerAnios().Contains(anio))
+                return BadRequest(new { error = "No hay datos sanitarios disponibles para ese año." });
+            try
+            {
+                var resumen = await _saludServiciosSocialesService.ObtenerResumen(anio);
+                return Ok(new { aniosDisponibles = _saludServiciosSocialesService.ObtenerAnios(), resumen });
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR SALUD -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { error = "Las fuentes municipales de Salud no respondieron." });
+            }
+        }
+
+        [HttpGet("salud-servicios-sociales/centros")]
+        public async Task<IActionResult> ObtenerCentrosSalud()
+        {
+            try { return Content(await _saludServiciosSocialesService.ObtenerCentrosGeoJson(), "application/geo+json", System.Text.Encoding.UTF8); }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"ERROR CENTROS DE SALUD -> {ex}");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "No se pudieron obtener los centros de salud oficiales." });
             }
         }
 

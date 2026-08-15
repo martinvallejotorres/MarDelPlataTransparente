@@ -26,7 +26,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/app.css?v=20260813">
+    <link rel="stylesheet" href="css/app.css?v=20260813e">
 
     <link rel="stylesheet" href="css/variables.css">
 
@@ -1388,6 +1388,7 @@
                     <div>
                         <label for="anioMovilidad">Año</label>
                         <select id="anioMovilidad">
+                            <option value="2026">2026 · parcial</option>
                             <option value="2025">2025</option>
                             <option value="2024">2024</option>
                             <option value="2023">2023</option>
@@ -1407,6 +1408,8 @@
                     </div>
                 </div>
 
+                <div id="estadoPublicacionMovilidad" class="estado-publicacion-parcial" hidden></div>
+
                 <div class="resumen-administracion resumen-movilidad" aria-live="polite">
                     <div><span>Pasajeros de la red</span><strong id="pasajerosMovilidad">-</strong></div>
                     <div><span>Kilómetros recorridos</span><strong id="kilometrosMovilidad">-</strong></div>
@@ -1417,21 +1420,25 @@
                 <p id="periodoMovilidad" class="nota-fuente-administracion"></p>
 
                 <div class="graficos-administracion graficos-movilidad">
-                    <article>
+                    <article class="serie-movilidad-grafico">
                         <h3>Pasajeros por mes y tipo de boleto</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoPasajerosMovilidad"></canvas></div>
                     </article>
-                    <article>
+                    <article class="serie-movilidad-grafico">
                         <h3>Kilómetros e IPK mensual</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoRecorridoMovilidad"></canvas></div>
                     </article>
-                    <article>
+                    <article class="serie-movilidad-grafico">
                         <h3>Servicios diarios por línea</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoFrecuenciasMovilidad"></canvas></div>
                     </article>
-                    <article>
+                    <article class="serie-movilidad-grafico">
                         <h3>Flota por empresa</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoFlotaMovilidad"></canvas></div>
+                    </article>
+                    <article id="actividadOficialMovilidadCard" hidden>
+                        <h3>Actividad oficial publicada en 2026</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoActividadMovilidad"></canvas></div>
                     </article>
                 </div>
 
@@ -1459,11 +1466,14 @@
                     <div>
                         <label for="anioMedioAmbiente">Año</label>
                         <select id="anioMedioAmbiente">
+                            <option value="2026">2026 · parcial</option>
                             <option value="2025">2025 · disposición parcial</option>
                             <option value="2024">2024 · cobertura completa</option>
                         </select>
                     </div>
                 </div>
+
+                <div id="estadoPublicacionAmbiente" class="estado-publicacion-parcial" hidden></div>
 
                 <div class="resumen-administracion resumen-ambiente" aria-live="polite">
                     <div><span>Residuos dispuestos</span><strong id="residuosAmbiente">-</strong></div>
@@ -1475,19 +1485,19 @@
                 <p id="periodoMedioAmbiente" class="nota-fuente-administracion"></p>
 
                 <div class="graficos-administracion graficos-ambiente">
-                    <article>
+                    <article class="serie-ambiente-grafico">
                         <h3>Disposición mensual de residuos</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoResiduosAmbiente"></canvas></div>
                     </article>
-                    <article>
+                    <article class="serie-ambiente-grafico">
                         <h3>Entrada y recuperación de materiales</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoRecuperacionAmbiente"></canvas></div>
                     </article>
-                    <article>
+                    <article class="serie-ambiente-grafico">
                         <h3>Calidad recreativa por playa</h3>
                         <div class="grafico-administracion-contenedor alto"><canvas id="graficoPlayasAmbiente"></canvas></div>
                     </article>
-                    <article class="estado-ambiental-card">
+                    <article class="estado-ambiental-card serie-ambiente-grafico">
                         <h3>Indicadores del período</h3>
                         <div class="indicadores-ambientales">
                             <div><span>Camiones descargados</span><strong id="camionesAmbiente">-</strong></div>
@@ -1515,6 +1525,64 @@
                     Fuente: Portal de Datos Abiertos MGP, EMSUR y Obras Sanitarias Mar del Plata S.E.
                     Cada indicador respeta el período efectivamente publicado; no se completan meses ni resultados faltantes.
                 </p>
+            </div>
+
+            <div id="panelCategoriaSalud" class="panel-categoria-datos" hidden>
+                <div class="filtros-administracion filtros-salud">
+                    <div>
+                        <label for="anioSalud">Año</label>
+                        <select id="anioSalud"><option value="2026">2026 · parcial</option><option value="2025">2025 · serie publicada</option></select>
+                    </div>
+                    <div>
+                        <label for="centroSalud">Centro de salud</label>
+                        <select id="centroSalud"><option value="todos">Todos los centros</option></select>
+                    </div>
+                    <div>
+                        <label for="especialidadSalud">Especialidad o prestación</label>
+                        <select id="especialidadSalud"><option value="todas">Todas las especialidades</option></select>
+                    </div>
+                </div>
+
+                <div id="estadoPublicacionSalud" class="estado-publicacion-parcial" hidden></div>
+
+                <div class="resumen-administracion" aria-live="polite">
+                    <div><span>Consultas registradas</span><strong id="consultasSalud">-</strong></div>
+                    <div><span>Centros con actividad</span><strong id="centrosActividadSalud">-</strong></div>
+                    <div><span>Especialidades informadas</span><strong id="especialidadesSalud">-</strong></div>
+                    <div><span>Centros en el mapa</span><strong id="centrosMapaSalud">-</strong></div>
+                </div>
+
+                <p id="periodoSalud" class="nota-fuente-administracion"></p>
+
+                <div class="graficos-administracion">
+                    <article class="serie-salud-grafico">
+                        <h3>Consultas por mes</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoMesesSalud"></canvas></div>
+                    </article>
+                    <article class="serie-salud-grafico">
+                        <h3>Especialidades con más atención</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoEspecialidadesSalud"></canvas></div>
+                    </article>
+                    <article class="serie-salud-grafico">
+                        <h3>Centros con más consultas</h3>
+                        <div class="grafico-administracion-contenedor alto"><canvas id="graficoCentrosSalud"></canvas></div>
+                    </article>
+                    <article class="estado-ambiental-card">
+                        <h3>Cómo leer estos datos</h3>
+                        <p class="explicacion-salud">Son prestaciones registradas, no personas únicas. El filtro permite explorar el catálogo publicado y la capa del mapa usa exclusivamente coordenadas oficiales.</p>
+                    </article>
+                </div>
+
+                <div class="administracion-mapa-aviso salud-mapa-aviso">
+                    <i class="fa-solid fa-house-medical"></i>
+                    <div>
+                        <strong>Centros municipales de salud en el mapa</strong>
+                        <span>Activá la capa para consultar nombre, domicilio y demás datos disponibles de cada establecimiento.</span>
+                    </div>
+                    <button id="activarCentrosSalud" type="button">Mostrar en mapa</button>
+                </div>
+
+                <p class="nota-fuente-administracion">Fuente: Portal de Datos Abiertos MGP, Secretaría de Salud. No se completan períodos ni establecimientos ausentes de la publicación oficial.</p>
             </div>
 
         </div>
@@ -1555,7 +1623,12 @@
                         soporte@mardelplatatransparente.com
 
                     </a>
-
+                    <a href="https://www.instagram.com/mardelplatatransparente/"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <i class="fa-brands fa-instagram"></i>
+                        mardelplatatransparente
+                    </a>
                 </div>
 
             </div>
@@ -1595,19 +1668,20 @@
 
     <script src="js/app.js"></script>
 
-    <script src="/js/comisarias.js?v=20260813b"></script>
+    <script src="/js/comisarias.js?v=20260813d"></script>
 
     <script src="/js/obras.js"></script>
 
     <script src="/js/historialObras.js"></script>
 
-    <script src="/js/catalogoDatos.js?v=20260813b"></script>
+    <script src="/js/catalogoDatos.js?v=20260813e"></script>
 
     <script src="/js/administracionPublica.js"></script>
 
-    <script src="/js/movilidadTransporte.js?v=20260813"></script>
+    <script src="/js/movilidadTransporte.js?v=20260813e"></script>
 
-    <script src="/js/medioAmbiente.js?v=20260813b"></script>
+    <script src="/js/medioAmbiente.js?v=20260813e"></script>
+    <script src="/js/saludServiciosSociales.js?v=20260813e"></script>
 
     <script src="js/detallePanel.js"></script>
 

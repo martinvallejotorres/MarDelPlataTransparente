@@ -9,6 +9,7 @@ let graficoPasajerosMovilidad = null;
 let graficoRecorridoMovilidad = null;
 let graficoFrecuenciasMovilidad = null;
 let graficoFlotaMovilidad = null;
+let graficoActividadMovilidad = null;
 
 const recorridosColectivosLayer = L.geoJSON(null, {
     style: feature => ({
@@ -138,13 +139,18 @@ function renderizarMovilidad() {
         ? datos.flotaPorEmpresa
         : datos.flotaPorEmpresa.filter(x => claveEmpresaMovilidad(x.empresa) === claveEmpresaMovilidad(empresa));
 
-    document.getElementById("pasajerosMovilidad").textContent = formatoCompactoMovilidad(datos.pasajerosTotal);
-    document.getElementById("kilometrosMovilidad").textContent = `${formatoCompactoMovilidad(datos.kilometrosTotal)} km`;
-    document.getElementById("recaudacionMovilidad").textContent = formatoDineroCompactoMovilidad(datos.recaudacionTotal);
-    document.getElementById("flotaMovilidad").textContent = flotaFiltrada.reduce((total, x) => total + x.unidades, 0).toLocaleString("es-AR");
+    renderizarEstadoPublicacion("estadoPublicacionMovilidad", datos);
+    const sinSerie = datos.esParcial && !datos.serieOperativaPublicada;
+    document.querySelectorAll(".serie-movilidad-grafico").forEach(x => { x.hidden = sinSerie; });
+
+    document.getElementById("pasajerosMovilidad").textContent = sinSerie ? "Sin publicación" : formatoCompactoMovilidad(datos.pasajerosTotal);
+    document.getElementById("kilometrosMovilidad").textContent = sinSerie ? "Sin publicación" : `${formatoCompactoMovilidad(datos.kilometrosTotal)} km`;
+    document.getElementById("recaudacionMovilidad").textContent = sinSerie ? "Sin publicación" : formatoDineroCompactoMovilidad(datos.recaudacionTotal);
+    document.getElementById("flotaMovilidad").textContent = sinSerie ? "Sin publicación" : flotaFiltrada.reduce((total, x) => total + x.unidades, 0).toLocaleString("es-AR");
     document.getElementById("cantidadLineasMovilidad").textContent = lineas.length.toLocaleString("es-AR");
-    document.getElementById("periodoMovilidad").innerHTML =
-        `Serie oficial: <strong>${escaparHtml(datos.periodo)}</strong> · IPK promedio: <strong>${Number(datos.ipkPromedio).toLocaleString("es-AR", { maximumFractionDigits: 2 })}</strong>`;
+    document.getElementById("periodoMovilidad").innerHTML = sinSerie
+        ? `Cobertura oficial: <strong>${escaparHtml(datos.periodo)}</strong>`
+        : `Serie oficial: <strong>${escaparHtml(datos.periodo)}</strong> · IPK promedio: <strong>${Number(datos.ipkPromedio).toLocaleString("es-AR", { maximumFractionDigits: 2 })}</strong>`;
 
     renderizarGraficosMovilidad(lineas, flotaFiltrada);
 }
@@ -153,6 +159,16 @@ function renderizarGraficosMovilidad(lineas, flotaFiltrada) {
     const datos = movilidadDatosActual;
     if (!datos || typeof Chart === "undefined") return;
     const meses = datos.meses;
+    const actividadCard = document.getElementById("actividadOficialMovilidadCard");
+    const actividad = datos.publicacionesParciales || [];
+    if (actividadCard) actividadCard.hidden = actividad.length === 0;
+    if (actividad.length) {
+        graficoActividadMovilidad = reemplazarGraficoMovilidad(graficoActividadMovilidad, "graficoActividadMovilidad", {
+            type: "bar",
+            data: { labels: actividad.map(x => x.nombre), datasets: [{ label: "Registros publicados", data: actividad.map(x => x.registros), backgroundColor: "#db3b87", borderRadius: 6 }] },
+            options: opcionesGraficoMovilidad({ indexAxis: "y", scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } })
+        });
+    }
 
     graficoPasajerosMovilidad = reemplazarGraficoMovilidad(graficoPasajerosMovilidad, "graficoPasajerosMovilidad", {
         type: "bar",
